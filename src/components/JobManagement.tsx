@@ -483,7 +483,7 @@ const JobManagement = () => {
           </div>
 
           {/* Jobs List */}
-          <div className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-1">
             {isAdmin && (
               <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border">
                 <Checkbox
