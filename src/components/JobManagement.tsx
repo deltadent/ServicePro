@@ -513,9 +513,32 @@ const JobManagement = () => {
                             <h3 className="font-semibold text-base leading-tight">{job.title}</h3>
                             <p className="text-xs text-gray-500 mt-1">#{job.job_number}</p>
                           </div>
-                          <Badge className={`${getStatusColor(job.status)} capitalize`} variant="outline">
-                            {job.status.replace('_', ' ')}
-                          </Badge>
+                          <div className="flex items-center space-x-2">
+                            <Badge className={`${getStatusColor(job.status)} capitalize`} variant="outline">
+                              {job.status.replace('_', ' ')}
+                            </Badge>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleViewJobDetails(job)}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  <span>View Details</span>
+                                </DropdownMenuItem>
+                                {isAdmin && (
+                                  <>
+                                    <DropdownMenuItem onClick={() => updateJobStatus(job.id, 'scheduled')}>Set Scheduled</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => updateJobStatus(job.id, 'in_progress')}>Set In Progress</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => updateJobStatus(job.id, 'completed')}>Set Completed</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => updateJobStatus(job.id, 'on_hold')}>Set On Hold</DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </div>
                         
                         <div className="mt-3 space-y-2 text-sm">
@@ -546,29 +569,6 @@ const JobManagement = () => {
                       </div>
                     </div>
                     
-                    <div className="ml-2">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleViewJobDetails(job)}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            <span>View Details</span>
-                          </DropdownMenuItem>
-                          {isAdmin && (
-                            <>
-                              <DropdownMenuItem onClick={() => updateJobStatus(job.id, 'scheduled')}>Set Scheduled</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => updateJobStatus(job.id, 'in_progress')}>Set In Progress</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => updateJobStatus(job.id, 'completed')}>Set Completed</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => updateJobStatus(job.id, 'on_hold')}>Set On Hold</DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
                   </div>
                 </CardContent>
               </Card>
