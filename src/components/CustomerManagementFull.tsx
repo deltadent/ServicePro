@@ -6,10 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Search, Edit, Trash2, Phone, Mail, MapPin, Navigation } from "lucide-react";
+import { Plus, Edit, Trash2, Phone, Mail, MapPin, MoreHorizontal, Archive } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from '@/integrations/supabase/client';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { geocodeAddress } from '@/utils/geocode';
 
@@ -25,6 +27,7 @@ interface Customer {
   zip_code: string | null;
   customer_type: string;
   created_at: string;
+  is_active: boolean;
 }
 
 const CustomerManagementFull = () => {
@@ -42,7 +45,8 @@ const CustomerManagementFull = () => {
     city: '',
     state: '',
     zip_code: '',
-    customer_type: 'residential'
+    customer_type: 'residential',
+    is_active: true
   });
   const { toast } = useToast();
 
@@ -58,7 +62,7 @@ const CustomerManagementFull = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setCustomers(data || []);
+      setCustomers(data as Customer[] || []);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -123,7 +127,8 @@ const CustomerManagementFull = () => {
       city: customer.city || '',
       state: customer.state || '',
       zip_code: customer.zip_code || '',
-      customer_type: customer.customer_type
+      customer_type: customer.customer_type,
+      is_active: customer.is_active,
     });
     setIsDialogOpen(true);
   };
@@ -154,6 +159,30 @@ const CustomerManagementFull = () => {
     }
   };
 
+  const handleArchive = async (customer: Customer) => {
+    try {
+      const { error } = await supabase
+        .from('customers')
+        .update({ is_active: !customer.is_active })
+        .eq('id', customer.id);
+
+      if (error) throw error;
+      
+      toast({
+        title: "Success",
+        description: `Customer ${!customer.is_active ? 'unarchived' : 'archived'} successfully`
+      });
+      
+      fetchCustomers();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       name: '',
@@ -164,27 +193,16 @@ const CustomerManagementFull = () => {
       city: '',
       state: '',
       zip_code: '',
-      customer_type: 'residential'
+      customer_type: 'residential',
+      is_active: true
     });
-  };
-
-  const openNavigation = (customer: Customer) => {
-    let query = '';
-    if (customer.address) {
-      query = `${customer.address}, ${customer.city}, ${customer.state}`;
-    } else {
-      query = `${customer.city}, ${customer.state}`;
-    }
-    
-    const encodedQuery = encodeURIComponent(query);
-    window.open(`https://www.google.com/maps/search/?api=1&query=${encodedQuery}`, '_blank');
   };
 
   const filteredCustomers = customers.filter(customer =>
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.phone?.includes(searchTerm) ||
-    customer.address?.toLowerCase().includes(searchTerm.toLowerCase())
+    (customer.email && customer.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (customer.phone && customer.phone.includes(searchTerm)) ||
+    (customer.address && customer.address.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   if (loading) {
@@ -210,6 +228,7 @@ const CustomerManagementFull = () => {
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
+            <ScrollArea className="max-h-[80vh]">
             <DialogHeader>
               <DialogTitle>{editingCustomer ? 'Edit' : 'Add'} Customer</DialogTitle>
               <DialogDescription>
@@ -247,15 +266,15 @@ const CustomerManagementFull = () => {
                 <Label htmlFor="short_address">Saudi Short Address</Label>
                 <Input id="short_address" value={formData.short_address} onChange={(e) => setFormData({ ...formData, short_address: e.target.value })} onBlur={async () => {
                   if (formData.short_address) {
-                    const result = await geocodeAddress(formData.short_address, 'AIzaSyAW6AzCs7tVVv0JGmdkrqc6aK_R3prvYk4');
+                    const result = await geocodeAddress(formData.short_address);
                     if (result) {
-                      setFormData({
-                        ...formData,
+                      setFormData(prev => ({
+                        ...prev,
                         address: result.address,
                         city: result.city,
                         state: result.state,
                         zip_code: result.zip_code,
-                      });
+                      }));
                     }
                   }
                 }} />
@@ -283,73 +302,120 @@ const CustomerManagementFull = () => {
                 <Button type="submit">{editingCustomer ? 'Update' : 'Add'} Customer</Button>
               </div>
             </form>
+            </ScrollArea>
           </DialogContent>
         </Dialog>
       </div>
 
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center space-x-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                placeholder="Search customers..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Badge variant="secondary" className="hidden sm:inline-flex">
-              {filteredCustomers.length} customers
-            </Badge>
-          </div>
-        </CardContent>
-      </Card>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredCustomers.map((customer) => (
-          <Card key={customer.id}>
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle>{customer.name}</CardTitle>
-                  <CardDescription>{customer.customer_type}</CardDescription>
-                </div>
-                <div className="flex space-x-2">
-                  <Button variant="outline" size="icon" onClick={() => handleEdit(customer)}>
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button variant="destructive" size="icon" onClick={() => handleDelete(customer.id)}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex items-center gap-2 text-sm">
-                <Mail className="w-4 h-4 text-muted-foreground" />
-                <span>{customer.email || 'N/A'}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <Phone className="w-4 h-4 text-muted-foreground" />
-                <span>{customer.phone || 'N/A'}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <MapPin className="w-4 h-4 text-muted-foreground" />
-                <span>{customer.short_address || customer.address || 'N/A'}</span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-        
-        {filteredCustomers.length === 0 && (
-          <Card>
-            <CardContent className="p-6 sm:p-8 text-center">
-              <p className="text-sm sm:text-base text-gray-500">No customers found</p>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+      <Tabs defaultValue="active">
+        <TabsList>
+          <TabsTrigger value="active">Active</TabsTrigger>
+          <TabsTrigger value="archived">Archived</TabsTrigger>
+        </TabsList>
+        <TabsContent value="active">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {filteredCustomers.filter(c => c.is_active).map((customer) => (
+              <Card key={customer.id}>
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle>{customer.name}</CardTitle>
+                      <CardDescription>{customer.customer_type}</CardDescription>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEdit(customer)}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          <span>Edit</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleArchive(customer)}>
+                          <Archive className="mr-2 h-4 w-4" />
+                          <span>Archive</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDelete(customer.id)}>
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          <span>Delete</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Mail className="w-4 h-4 text-muted-foreground" />
+                    <span>{customer.email || 'N/A'}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Phone className="w-4 h-4 text-muted-foreground" />
+                    <span>{customer.phone || 'N/A'}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="w-4 h-4 text-muted-foreground" />
+                    <span>{customer.short_address || customer.address || 'N/A'}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+        <TabsContent value="archived">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {filteredCustomers.filter(c => !c.is_active).map((customer) => (
+              <Card key={customer.id}>
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle>{customer.name}</CardTitle>
+                      <CardDescription>{customer.customer_type}</CardDescription>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEdit(customer)}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          <span>Edit</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleArchive(customer)}>
+                          <Archive className="mr-2 h-4 w-4" />
+                          <span>Unarchive</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDelete(customer.id)}>
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          <span>Delete</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Mail className="w-4 h-4 text-muted-foreground" />
+                    <span>{customer.email || 'N/A'}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Phone className="w-4 h-4 text-muted-foreground" />
+                    <span>{customer.phone || 'N/A'}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="w-4 h-4 text-muted-foreground" />
+                    <span>{customer.short_address || customer.address || 'N/A'}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

@@ -47,8 +47,8 @@ const JobCreationDialog = ({ onJobCreated }: JobCreationDialogProps) => {
   const fetchCustomersAndTechnicians = async () => {
     try {
       const [customersResponse, techniciansResponse] = await Promise.all([
-        supabase.from('customers').select('id, name, email').order('name'),
-        supabase.from('profiles').select('id, full_name, email').eq('role', 'worker').order('full_name')
+        supabase.from('customers').select('id, name, email').eq('is_active', true).order('name'),
+        supabase.from('profiles').select('id, full_name, email').eq('role', 'worker').eq('is_active', true).order('full_name')
       ]);
 
       if (customersResponse.error) throw customersResponse.error;

@@ -498,77 +498,80 @@ const JobManagement = () => {
             {filteredAndSortedJobs.map((job) => (
               <Card key={job.id} className="overflow-hidden border-l-4 border-blue-500">
                 <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3 flex-1">
-                      {isAdmin && (
+                  <div className="flex gap-3">
+                    {/* Checkbox */}
+                    {isAdmin && (
+                      <div className="flex-shrink-0 pt-1">
                         <Checkbox
                           checked={selectedJobs.includes(job.id)}
                           onCheckedChange={() => toggleJobSelection(job.id)}
-                          className="mt-1"
                         />
-                      )}
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-base leading-tight">{job.title}</h3>
-                            <p className="text-xs text-gray-500 mt-1">#{job.job_number}</p>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Badge className={`${getStatusColor(job.status)} capitalize`} variant="outline">
-                              {job.status.replace('_', ' ')}
-                            </Badge>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                  <MoreHorizontal className="w-4 h-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleViewJobDetails(job)}>
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  <span>View Details</span>
-                                </DropdownMenuItem>
-                                {isAdmin && (
-                                  <>
-                                    <DropdownMenuItem onClick={() => updateJobStatus(job.id, 'scheduled')}>Set Scheduled</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => updateJobStatus(job.id, 'in_progress')}>Set In Progress</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => updateJobStatus(job.id, 'completed')}>Set Completed</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => updateJobStatus(job.id, 'on_hold')}>Set On Hold</DropdownMenuItem>
-                                  </>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
+                      </div>
+                    )}
+                    
+                    {/* Main Content */}
+                    <div className="flex-1 min-w-0">
+                      {/* Header Row - Title, Job Number, Status, Menu */}
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-base leading-tight truncate">{job.title}</h3>
+                          <p className="text-xs text-gray-500 mt-1">#{job.job_number}</p>
                         </div>
-                        
-                        <div className="mt-3 space-y-2 text-sm">
-                          <div className="flex items-center gap-2 text-gray-700">
-                            <User className="w-3.5 h-3.5 text-gray-400" />
-                            <span>{job.customers?.name}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-gray-700">
-                            <MapPin className="w-3.5 h-3.5 text-gray-400" />
-                            <span className="truncate">{job.customers?.address}, {job.customers?.city}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-gray-700">
-                            <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                            <span>
-                              {job.scheduled_date 
-                                ? new Date(job.scheduled_date).toLocaleString()
-                                : 'Not scheduled'
-                              }
-                            </span>
-                          </div>
-                          {job.profiles?.full_name && (
-                            <div className="flex items-center gap-2 text-gray-700">
-                              <Wrench className="w-3.5 h-3.5 text-gray-400" />
-                              <span>{job.profiles.full_name}</span>
-                            </div>
-                          )}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Badge className={`${getStatusColor(job.status)} capitalize text-xs px-2 py-1 whitespace-nowrap`} variant="outline">
+                            {job.status.replace('_', ' ')}
+                          </Badge>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleViewJobDetails(job)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                <span>View Details</span>
+                              </DropdownMenuItem>
+                              {isAdmin && (
+                                <>
+                                  <DropdownMenuItem onClick={() => updateJobStatus(job.id, 'scheduled')}>Set Scheduled</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => updateJobStatus(job.id, 'in_progress')}>Set In Progress</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => updateJobStatus(job.id, 'completed')}>Set Completed</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => updateJobStatus(job.id, 'on_hold')}>Set On Hold</DropdownMenuItem>
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
+                      
+                      {/* Job Details */}
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center gap-2 text-gray-700">
+                          <User className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                          <span className="truncate">{job.customers?.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-700">
+                          <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                          <span className="truncate">{job.customers?.address}, {job.customers?.city}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-700">
+                          <Calendar className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                          <span className="truncate">
+                            {job.scheduled_date 
+                              ? new Date(job.scheduled_date).toLocaleString()
+                              : 'Not scheduled'
+                            }
+                          </span>
+                        </div>
+                        {job.profiles?.full_name && (
+                          <div className="flex items-center gap-2 text-gray-700">
+                            <Wrench className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                            <span className="truncate">{job.profiles.full_name}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    
                   </div>
                 </CardContent>
               </Card>

@@ -7,7 +7,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Search, Edit, Trash2, Phone, Mail, Calendar, User, MoreVertical } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Phone, Mail, Calendar, User, MoreVertical, Archive } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/hooks/use-toast";
@@ -187,6 +189,7 @@ const TechnicianManagementFull = () => {
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
+            <ScrollArea className="max-h-[80vh]">
             <DialogHeader>
               <DialogTitle>{editingTechnician ? 'Edit' : 'Add'} Technician</DialogTitle>
               <DialogDescription>
@@ -235,92 +238,155 @@ const TechnicianManagementFull = () => {
                 <Button type="submit">{editingTechnician ? 'Update' : 'Add'} Technician</Button>
               </div>
             </form>
+            </ScrollArea>
           </DialogContent>
         </Dialog>
       </div>
 
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center space-x-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                placeholder="Search technicians..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Badge variant="secondary" className="hidden sm:inline-flex">
-              {filteredTechnicians.length} technicians
-            </Badge>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredTechnicians.map((technician) => (
-          <Card key={technician.id} className="flex flex-col">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle>{technician.full_name || 'N/A'}</CardTitle>
-                  <CardDescription>#{technician.employee_id || 'N/A'}</CardDescription>
-                </div>
-                <Badge variant={technician.is_active ? 'default' : 'destructive'}>
-                  {technician.is_active ? 'Active' : 'Inactive'}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="flex-grow space-y-3">
-              <div className="flex items-center gap-2 text-sm">
-                <Mail className="w-4 h-4 text-gray-500" />
-                <span className="truncate">{technician.email}</span>
-              </div>
-              {technician.phone && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Phone className="w-4 h-4 text-gray-500" />
-                  <span>{technician.phone}</span>
-                </div>
-              )}
-              <div className="flex items-center gap-2 text-sm">
-                <User className="w-4 h-4 text-gray-500" />
-                <span className="capitalize">{technician.role}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <Calendar className="w-4 h-4 text-gray-500" />
-                <span>Hired: {new Date(technician.hire_date).toLocaleDateString()}</span>
-              </div>
-            </CardContent>
-            <div className="p-4 border-t flex justify-end">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <MoreVertical className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleEdit(technician)}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    <span>Edit</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleToggleStatus(technician.id, technician.is_active)}>
-                    {technician.is_active ? 'Deactivate' : 'Activate'}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </Card>
-        ))}
-        
-        {filteredTechnicians.length === 0 && (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <p className="text-gray-500">No technicians found</p>
-            </CardContent>
-          </Card>
-        )}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <Input
+          placeholder="Search by name, email, or ID..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10 w-full max-w-sm"
+        />
       </div>
+
+      <Tabs defaultValue="active">
+        <TabsList>
+          <TabsTrigger value="active">Active</TabsTrigger>
+          <TabsTrigger value="archived">Archived</TabsTrigger>
+        </TabsList>
+        <TabsContent value="active">
+          <div className="grid gap-4">
+            {filteredTechnicians.filter(t => t.is_active).length > 0 ? (
+              filteredTechnicians.filter(t => t.is_active).map((technician) => (
+                <Card key={technician.id} className="flex flex-col">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle>{technician.full_name || 'N/A'}</CardTitle>
+                        <CardDescription>#{technician.employee_id || 'N/A'}</CardDescription>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={technician.is_active ? 'default' : 'destructive'}>
+                          {technician.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEdit(technician)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              <span>Edit</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleToggleStatus(technician.id, technician.is_active)}>
+                              <Archive className="mr-2 h-4 w-4" />
+                              <span>{technician.is_active ? 'Archive' : 'Unarchive'}</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex-grow space-y-3">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Mail className="w-4 h-4 text-gray-500" />
+                      <span className="truncate">{technician.email}</span>
+                    </div>
+                    {technician.phone && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Phone className="w-4 h-4 text-gray-500" />
+                        <span>{technician.phone}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 text-sm">
+                      <User className="w-4 h-4 text-gray-500" />
+                      <span className="capitalize">{technician.role}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <span>Hired: {new Date(technician.hire_date).toLocaleDateString()}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                <p>No active technicians found.</p>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+        <TabsContent value="archived">
+          <div className="grid gap-4">
+            {filteredTechnicians.filter(t => !t.is_active).length > 0 ? (
+              filteredTechnicians.filter(t => !t.is_active).map((technician) => (
+                <Card key={technician.id} className="flex flex-col">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle>{technician.full_name || 'N/A'}</CardTitle>
+                        <CardDescription>#{technician.employee_id || 'N/A'}</CardDescription>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={technician.is_active ? 'default' : 'destructive'}>
+                          {technician.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEdit(technician)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              <span>Edit</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleToggleStatus(technician.id, technician.is_active)}>
+                              <Archive className="mr-2 h-4 w-4" />
+                              <span>{technician.is_active ? 'Archive' : 'Unarchive'}</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex-grow space-y-3">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Mail className="w-4 h-4 text-gray-500" />
+                      <span className="truncate">{technician.email}</span>
+                    </div>
+                    {technician.phone && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Phone className="w-4 h-4 text-gray-500" />
+                        <span>{technician.phone}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 text-sm">
+                      <User className="w-4 h-4 text-gray-500" />
+                      <span className="capitalize">{technician.role}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <span>Hired: {new Date(technician.hire_date).toLocaleDateString()}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                <p>No archived technicians found.</p>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
