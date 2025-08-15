@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,10 +19,11 @@ import CustomerManagementFull from "@/components/CustomerManagementFull";
 import TechnicianManagementFull from "@/components/TechnicianManagementFull";
 import ReportsAnalyticsFull from "@/components/ReportsAnalyticsFull";
 import NotFound from "@/pages/NotFound";
+import LandingPage from "@/pages/LandingPage";
 
 const queryClient = new QueryClient();
 
-const AppRoutes = () => {
+const ProtectedApp = () => {
   const { user, profile, loading } = useAuth();
 
   if (loading) {
@@ -35,7 +35,7 @@ const AppRoutes = () => {
   }
 
   if (!user) {
-    return <AuthPage />;
+    return <Navigate to="/login" replace />;
   }
 
   if (!profile) {
@@ -54,13 +54,10 @@ const AppRoutes = () => {
   return (
     <Layout>
       <Routes>
-        <Route 
-          path="/" 
-          element={
-            <Navigate to={isAdmin ? '/admin' : '/worker'} replace />
-          } 
+        <Route
+          path="/home"
+          element={<Navigate to={isAdmin ? '/admin' : '/worker'} replace />}
         />
-
         {/* Admin Routes */}
         <Route 
           path="/admin" 
@@ -206,18 +203,40 @@ const AppRoutes = () => {
   );
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <AppRoutes />
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
+
+const AppRoutes = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  return (
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/login" element={<AuthPage />} />
+      <Route path="/*" element={<ProtectedApp />} />
+    </Routes>
+  );
+};
 
 export default App;

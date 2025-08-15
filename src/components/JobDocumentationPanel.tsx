@@ -101,54 +101,33 @@ const JobDocumentationPanel = ({
         <CardContent className="space-y-4 sm:space-y-6">
           {/* Photo Upload Section */}
           <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
-            <div className="space-y-3 sm:space-y-4">
-              <div>
-                <Label htmlFor="photo-description" className="text-sm">Photo Description</Label>
-                <Input
-                  id="photo-description"
-                  value={workNotes}
-                  onChange={(e) => setWorkNotes(e.target.value)}
-                  placeholder="Describe what this photo shows..."
-                  className="mt-1 text-sm"
-                />
-              </div>
-              
-              <div>
-                <Label className="text-sm">Photo Type</Label>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {photoTypes.map((type) => (
-                    <Button
-                      key={type.value}
-                      variant={selectedPhotoType === type.value ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setSelectedPhotoType(type.value)}
-                      className="text-xs"
-                    >
-                      <type.icon className="w-3 h-3 mr-1" />
-                      <span className="hidden sm:inline">{type.label}</span>
-                      <span className="sm:hidden">{type.label.split(' ')[0]}</span>
-                    </Button>
-                  ))}
-                </div>
-              </div>
-              
-              <Button
-                onClick={() => document.getElementById('photo-upload')?.click()}
-                disabled={uploadingPhoto || jobStatus === 'completed'}
-                className="w-full text-sm"
-                size="sm"
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                {uploadingPhoto ? 'Uploading...' : `Add ${selectedPhotoType} Photo`}
-              </Button>
+            <div className="grid grid-cols-3 gap-2">
+              {photoTypes.map((type) => (
+                <Button
+                  key={type.value}
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedPhotoType(type.value);
+                    document.getElementById(`photo-upload-${type.value}`)?.click();
+                  }}
+                  disabled={uploadingPhoto || jobStatus === 'completed'}
+                  className="flex flex-col h-20 items-center justify-center text-xs"
+                >
+                  <type.icon className="w-6 h-6 mb-1" />
+                  {type.label}
+                </Button>
+              ))}
+            </div>
+            {photoTypes.map((type) => (
               <input
-                id="photo-upload"
+                key={type.value}
+                id={`photo-upload-${type.value}`}
                 type="file"
                 accept="image/*"
                 onChange={onPhotoUpload}
                 className="hidden"
               />
-            </div>
+            ))}
           </div>
 
           {/* Photo Galleries */}

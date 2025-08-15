@@ -12,11 +12,13 @@ import {
   Wrench,
   Zap,
   Droplets,
-  Settings
+  Settings,
+  Edit
 } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from "@/hooks/use-toast";
+import InventoryItemDialog from './InventoryItemDialog';
 
 const InventoryPage = () => {
   const { toast } = useToast();
@@ -95,10 +97,7 @@ const InventoryPage = () => {
           <p className="text-gray-600">Track parts, tools, and supplies</p>
         </div>
         {isAdmin && (
-          <Button className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Item
-          </Button>
+          <InventoryItemDialog onItemSaved={fetchInventory} />
         )}
       </div>
 
@@ -201,6 +200,20 @@ const InventoryPage = () => {
                   </div>
                 )}
               </CardContent>
+              {isAdmin && (
+                <div className="p-4 pt-0">
+                  <InventoryItemDialog
+                    item={item}
+                    onItemSaved={fetchInventory}
+                    trigger={
+                      <Button variant="outline" size="sm" className="w-full">
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit
+                      </Button>
+                    }
+                  />
+                </div>
+              )}
             </Card>
           );
         })}

@@ -22,7 +22,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from "@/hooks/use-toast";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useDevice } from "@/hooks/use-device";
 import JobWorkflowStepper from './JobWorkflowStepper';
 import JobDocumentationPanel from './JobDocumentationPanel';
 import AddPartToJobDialog from './AddPartToJobDialog';
@@ -37,7 +37,7 @@ interface JobDetailsDialogProps {
 const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialogProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const isMobile = useIsMobile();
+  const { isMobile } = useDevice();
   
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -423,17 +423,18 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
 
       {/* Workflow and Documentation */}
       <Tabs defaultValue="workflow" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="workflow" className="text-xs sm:text-sm">
-            <Workflow className="w-4 h-4 mr-1" />
-            Workflow
+        <TabsList className="grid w-full grid-cols-3 h-12">
+          <TabsTrigger value="workflow" className="text-xs sm:text-sm h-full">
+            <Workflow className="w-5 h-5 sm:mr-2" />
+            <span className="hidden sm:inline">Workflow</span>
           </TabsTrigger>
-          <TabsTrigger value="documentation" className="text-xs sm:text-sm">
-            Documentation
+          <TabsTrigger value="documentation" className="text-xs sm:text-sm h-full">
+            <Wrench className="w-5 h-5 sm:mr-2" />
+            <span className="hidden sm:inline">Documentation</span>
           </TabsTrigger>
-          <TabsTrigger value="parts" className="text-xs sm:text-sm">
-            <Wrench className="w-4 h-4 mr-1" />
-            Parts
+          <TabsTrigger value="parts" className="text-xs sm:text-sm h-full">
+            <Wrench className="w-5 h-5 sm:mr-2" />
+            <span className="hidden sm:inline">Parts</span>
           </TabsTrigger>
         </TabsList>
         
@@ -488,23 +489,30 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
 
   if (isMobile) {
     return (
-      <Sheet open={isOpen} onOpenChange={onClose}>
-        <SheetContent side="bottom" className="h-[85vh] overflow-hidden">
-          <SheetHeader className="pb-4">
-            <SheetTitle>Job Details</SheetTitle>
-            <SheetDescription>
-              View and manage job information and documentation
-            </SheetDescription>
-          </SheetHeader>
-          {content}
-        </SheetContent>
-      </Sheet>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-full h-full max-h-screen overflow-y-auto p-0 [&>button]:hidden">
+          <DialogHeader className="p-4 border-b flex flex-row items-center justify-between">
+            <div>
+              <DialogTitle>Job Details</DialogTitle>
+              <DialogDescription>
+                View and manage job information and documentation
+              </DialogDescription>
+            </div>
+            <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0">
+              <X className="w-6 h-6" />
+            </Button>
+          </DialogHeader>
+          <div className="p-4">
+            {content}
+          </div>
+        </DialogContent>
+      </Dialog>
     );
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden sm:max-w-2xl md:max-w-3xl lg:max-w-4xl">
         <DialogHeader>
           <DialogTitle>Job Details</DialogTitle>
           <DialogDescription>

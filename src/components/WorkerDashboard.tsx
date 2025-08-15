@@ -1,27 +1,20 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Calendar, 
-  CheckCircle, 
   Clock,
   Navigation,
-  Camera,
-  Play,
-  Pause,
-  Square,
   FileText,
   Search,
-  Filter,
-  TrendingUp,
   MapPin,
   Phone,
   User,
-  MoreVertical
+  MoreVertical,
+  Play
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -32,12 +25,66 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from "@/hooks/use-toast";
+import { useDevice } from '@/hooks/use-device';
 import JobDetailsDialog from './JobDetailsDialog';
 import JobHistory from './JobHistory';
+import WorkerDashboardTablet from './WorkerDashboardTablet';
+import BottomNavBar from './BottomNavBar';
+
+// --- Helpers ---
+const getPriorityColor = (priority: string) => {
+  switch (priority) {
+    case 'urgent': return 'bg-destructive';
+    case 'high': return 'bg-orange-500';
+    case 'medium': return 'bg-yellow-500';
+    case 'low': return 'bg-green-500';
+    default: return 'bg-muted-foreground';
+  }
+};
+
+const getStatusBadgeStyle = (status: string) => {
+  switch (status) {
+    case 'scheduled':
+      return 'border-primary/30 text-primary bg-primary/10';
+    case 'in_progress':
+      return 'border-destructive/30 text-destructive bg-destructive/10';
+    case 'completed':
+      return 'border-emerald-400/30 text-emerald-600 bg-emerald-500/10';
+    default:
+      return 'border-muted-foreground/30';
+  }
+};
+
+const formatDayLabel = (date: Date) => {
+  const today = new Date();
+  const startOf = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const t0 = startOf(today).getTime();
+  const d0 = startOf(date).getTime();
+  const diffDays = Math.round((d0 - t0) / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Tomorrow';
+  const fmt = new Intl.DateTimeFormat(undefined, { weekday: 'short', day: '2-digit', month: 'short' });
+  return fmt.format(date);
+};
+
+const formatTime = (date: Date) => new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' }).format(date);
+const formatDate = (date: Date) => new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'short', day: '2-digit' }).format(date);
+
+const minutesUntil = (when: Date) => Math.round((when.getTime() - Date.now()) / (1000 * 60));
+
+const relativeTime = (when: Date) => {
+  const mins = minutesUntil(when);
+  const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+  if (Math.abs(mins) < 60) return rtf.format(mins, 'minute');
+  const hours = Math.round(mins / 60);
+  return rtf.format(hours, 'hour');
+};
 
 const WorkerDashboard = () => {
   const { user } = useAuth();
+  const { isTablet } = useDevice();
   const { toast } = useToast();
+
   const [stats, setStats] = useState({
     todayJobs: 0,
     completedJobs: 0,
@@ -47,23 +94,59 @@ const WorkerDashboard = () => {
     avgCompletionTime: 0,
     totalRevenue: 0
   });
+
   const [myJobs, setMyJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [showJobDetails, setShowJobDetails] = useState(false);
-  const [activeTab, setActiveTab] = useState('current');
+  const [activeTab, setActiveTab] = useState<'current' | 'history'>('current');
+
+  // --- Search / filter / sort ---
+  const [rawSearch, setRawSearch] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('scheduled_date');
+  const [statusFilter, setStatusFilter] = useState<string>(() => localStorage.getItem('wd_statusFilter') || 'all');
+  const [sortBy, setSortBy] = useState<string>(() => localStorage.getItem('wd_sortBy') || 'scheduled_date');
+
+  // Debounce search input
+  useEffect(() => {
+    const id = setTimeout(() => setSearchTerm(rawSearch), 250);
+    return () => clearTimeout(id);
+  }, [rawSearch]);
+
+  // Persist filters
+  useEffect(() => { localStorage.setItem('wd_statusFilter', statusFilter); }, [statusFilter]);
+  useEffect(() => { localStorage.setItem('wd_sortBy', sortBy); }, [sortBy]);
 
   useEffect(() => {
-    if (user) {
-      fetchWorkerData();
-    }
+    if (user) fetchWorkerData();
+  }, [user]);
+
+  // Realtime updates for this technician
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel('jobs-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs', filter: `technician_id=eq.${user.id}` },
+        (payload: any) => {
+          const j = payload.new;
+          setMyJobs((prev) => {
+            // Only keep scheduled/in_progress in current tab list
+            if (!['scheduled', 'in_progress'].includes(j.status)) {
+              return prev.filter(x => x.id !== j.id);
+            }
+            const exists = prev.some(x => x.id === j.id);
+            return exists ? prev.map(x => x.id === j.id ? j : x) : [j, ...prev];
+          });
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [user]);
 
   const fetchWorkerData = async () => {
     try {
+      setLoading(true);
       const { data: jobs, error: jobsError } = await supabase
         .from('jobs')
         .select(`
@@ -95,7 +178,7 @@ const WorkerDashboard = () => {
 
       const completedJobs = jobs?.filter(j => j.status === 'completed').length || 0;
       const pendingJobs = jobs?.filter(j => j.status === 'scheduled' || j.status === 'in_progress').length || 0;
-      
+
       const weeklyCompletedJobs = jobs?.filter(job => {
         const completedDate = new Date(job.completed_at || job.created_at);
         return job.status === 'completed' && completedDate >= weekAgo;
@@ -112,20 +195,18 @@ const WorkerDashboard = () => {
 
       const monthlyRating = 0;
 
-      // Calculate average completion time
       const completedJobsWithDuration = jobs?.filter(job => 
         job.status === 'completed' && job.started_at && job.completed_at
       ) || [];
-      
+
       const avgCompletionTime = completedJobsWithDuration.length > 0 
         ? completedJobsWithDuration.reduce((sum, job) => {
             const start = new Date(job.started_at);
             const end = new Date(job.completed_at);
-            return sum + (end.getTime() - start.getTime()) / (1000 * 60); // minutes
+            return sum + (end.getTime() - start.getTime()) / (1000 * 60);
           }, 0) / completedJobsWithDuration.length
         : 0;
 
-      // Calculate total revenue
       const totalRevenue = jobs?.filter(job => job.status === 'completed')
         .reduce((sum, job) => sum + (job.total_cost || 0), 0) || 0;
 
@@ -139,90 +220,37 @@ const WorkerDashboard = () => {
         totalRevenue
       });
 
-      setMyJobs(jobs?.filter(job => 
-        job.status === 'scheduled' || job.status === 'in_progress'
-      ) || []);
+      setMyJobs(jobs?.filter(job => job.status === 'scheduled' || job.status === 'in_progress') || []);
 
     } catch (error: any) {
       console.error('Error fetching worker data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load dashboard data",
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: "Failed to load dashboard data", variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredAndSortedJobs = useMemo(() => {
-    let filtered = myJobs.filter(job => {
-      const matchesSearch = 
-        job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.job_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.customers?.name.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesStatus = statusFilter === "all" || job.status === statusFilter;
-      
-      return matchesSearch && matchesStatus;
-    });
-
-    // Sort jobs
-    filtered.sort((a, b) => {
-      let aValue = a[sortBy];
-      let bValue = b[sortBy];
-      
-      if (sortBy === 'customer_name') {
-        aValue = a.customers?.name || '';
-        bValue = b.customers?.name || '';
-      }
-      
-      if (typeof aValue === 'string') {
-        aValue = aValue.toLowerCase();
-        bValue = bValue.toLowerCase();
-      }
-      
-      if (!aValue) return 1;
-      if (!bValue) return -1;
-      
-      return aValue < bValue ? -1 : 1;
-    });
-
-    return filtered;
-  }, [myJobs, searchTerm, statusFilter, sortBy]);
-
+  // Optimistic start
   const startJob = async (jobId: string) => {
+    const optimisticStartedAt = new Date().toISOString();
+    setMyJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: 'in_progress', started_at: optimisticStartedAt } : j));
     try {
       const { error } = await supabase
         .from('jobs')
-        .update({ 
-          status: 'in_progress',
-          started_at: new Date().toISOString()
-        })
+        .update({ status: 'in_progress', started_at: optimisticStartedAt })
         .eq('id', jobId);
-
       if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Job started successfully"
-      });
-
-      fetchWorkerData();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to start job",
-        variant: "destructive"
-      });
+      toast({ title: 'Success', description: 'Job started successfully' });
+    } catch (error:any) {
+      // rollback
+      setMyJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: 'scheduled', started_at: null } : j));
+      toast({ title: 'Error', description: 'Failed to start job', variant: 'destructive' });
     }
   };
 
   const openNavigation = (job: any) => {
     const customer = job.customers;
     if (!customer) return;
-
-    // Prioritize short address (National Address) for more precise navigation
     let query = '';
     if (customer.short_address && customer.short_address.trim()) {
       query = customer.short_address.trim();
@@ -231,7 +259,6 @@ const WorkerDashboard = () => {
     } else {
       query = `${customer.city}, ${customer.state}`;
     }
-    
     const encodedQuery = encodeURIComponent(query);
     window.open(`https://www.google.com/maps/search/?api=1&query=${encodedQuery}`, '_blank');
   };
@@ -240,47 +267,102 @@ const WorkerDashboard = () => {
     window.open(`tel:${phone}`, '_self');
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'scheduled': return 'bg-blue-100 text-blue-800';
-      case 'in_progress': return 'bg-yellow-100 text-yellow-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+  // Filtering + Sorting
+  const filteredAndSortedJobs = useMemo(() => {
+    let filtered = myJobs.filter(job => {
+      const title = (job.title || '').toLowerCase();
+      const jobNo = (job.job_number || '').toLowerCase();
+      const cust = (job.customers?.name || '').toLowerCase();
+      const q = searchTerm.toLowerCase();
+      const matchesSearch = title.includes(q) || jobNo.includes(q) || cust.includes(q);
+      const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+
+    filtered.sort((a, b) => {
+      let aValue: any = a[sortBy];
+      let bValue: any = b[sortBy];
+      if (sortBy === 'customer_name') {
+        aValue = a.customers?.name || '';
+        bValue = b.customers?.name || '';
+      }
+      if (typeof aValue === 'string') aValue = aValue.toLowerCase();
+      if (typeof bValue === 'string') bValue = bValue.toLowerCase();
+      if (!aValue) return 1;
+      if (!bValue) return -1;
+      return aValue < bValue ? -1 : 1;
+    });
+
+    return filtered;
+  }, [myJobs, searchTerm, statusFilter, sortBy]);
+
+  // Group by day for sticky section headers
+  const groupedJobs = useMemo(() => {
+    const map = new Map<string, any[]>();
+    for (const job of filteredAndSortedJobs) {
+      const d = new Date(job.scheduled_date);
+      const key = new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString();
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(job);
     }
-  };
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [filteredAndSortedJobs]);
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'urgent': return 'bg-destructive';
-      case 'high': return 'bg-orange-500';
-      case 'medium': return 'bg-yellow-500';
-      case 'low': return 'bg-green-500';
-      default: return 'bg-muted-foreground';
-    }
-  };
-
-  const handleViewDetails = (job: any) => {
-    setSelectedJob(job);
-    setShowJobDetails(true);
-  };
-
-  const formatDuration = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = Math.round(minutes % 60);
-    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-  };
-
+  // --- Loading skeleton ---
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-muted/30 pb-20 sm:pb-6">
+        <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border p-4 sm:p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <User className="w-4 h-4 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-lg font-semibold text-foreground">Dashboard</h1>
+                <p className="text-xs text-muted-foreground">Loading…</p>
+              </div>
+            </div>
+            <Badge variant="secondary" className="text-xs">—</Badge>
+          </div>
+          <div className="hidden sm:flex gap-1 mt-4 p-1 bg-muted rounded-lg">
+            <Skeleton className="h-8 w-24" />
+            <Skeleton className="h-8 w-24" />
+          </div>
+        </div>
+
+        <div className="p-4 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            {[0,1].map(i => (
+              <Card key={i} className="bg-gradient-to-br from-muted/40 to-muted/20">
+                <CardContent className="p-3">
+                  <div className="text-center space-y-2">
+                    <Skeleton className="h-7 w-14 mx-auto" />
+                    <Skeleton className="h-4 w-20 mx-auto" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {[...Array(4)].map((_, i) => (
+            <Card key={i} className="overflow-hidden">
+              <CardContent className="p-4 space-y-3">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-5 w-2/3" />
+                <Skeleton className="h-4 w-1/3" />
+                <Skeleton className="h-8 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-muted/30 pb-20 sm:pb-6">
-      {/* Mobile Header */}
+      {/* Header */}
       <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border p-4 sm:p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -296,9 +378,9 @@ const WorkerDashboard = () => {
             {stats.pendingJobs} active
           </Badge>
         </div>
-        
-        {/* Mobile Tab Navigation */}
-        <div className="flex gap-1 mt-4 p-1 bg-muted rounded-lg">
+
+        {/* Tabs (mobile visible when >= sm as in original) */}
+        <div className="hidden sm:flex gap-1 mt-4 p-1 bg-muted rounded-lg">
           <Button
             variant={activeTab === 'current' ? 'default' : 'ghost'}
             onClick={() => setActiveTab('current')}
@@ -321,7 +403,7 @@ const WorkerDashboard = () => {
       <div className="p-4 space-y-4">
         {activeTab === 'current' ? (
           <>
-            {/* Mobile-First Stats Overview */}
+            {/* Stats overview */}
             <div className="grid grid-cols-2 gap-3">
               <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
                 <CardContent className="p-3">
@@ -331,7 +413,6 @@ const WorkerDashboard = () => {
                   </div>
                 </CardContent>
               </Card>
-              
               <Card className="bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20">
                 <CardContent className="p-3">
                   <div className="text-center">
@@ -342,119 +423,156 @@ const WorkerDashboard = () => {
               </Card>
             </div>
 
+            {/* Search + status filters */}
+            <div className="space-y-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder="Search jobs..."
+                  value={rawSearch}
+                  onChange={(e) => setRawSearch(e.target.value)}
+                  className="pl-10 h-10 bg-background"
+                />
+              </div>
 
-            {/* Mobile Search - Simplified */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                placeholder="Search jobs..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 h-10 bg-background"
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {[
+                  { key: 'all', label: 'All' },
+                  { key: 'scheduled', label: 'Scheduled' },
+                  { key: 'in_progress', label: 'In Progress' },
+                ].map(({ key, label }) => (
+                  <Button
+                    key={key}
+                    size="sm"
+                    variant={statusFilter === key ? 'default' : 'outline'}
+                    className="h-8 px-3"
+                    onClick={() => setStatusFilter(key)}
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Conditional rendering for tablet */}
+            {isTablet ? (
+              <WorkerDashboardTablet 
+                jobs={filteredAndSortedJobs}
+                handleViewDetails={(job: any) => { setSelectedJob(job); setShowJobDetails(true); }}
+                openNavigation={openNavigation}
+                callCustomer={(phone: string) => callCustomer(phone)}
+                startJob={(id: string) => startJob(id)}
               />
-            </div>
-
-            {/* Mobile Job Cards */}
-            <div className="space-y-3">
-              {filteredAndSortedJobs.length === 0 ? (
-                <Card className="p-8 text-center">
-                  <div className="text-muted-foreground text-sm">No jobs found</div>
-                </Card>
-              ) : (
-                filteredAndSortedJobs.map((job) => (
-                  <Card key={job.id} className="overflow-hidden border-l-4 border-l-primary">
-                    <CardContent className="p-4">
-                      {/* Job Header */}
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <div className={`w-2 h-2 rounded-full ${getPriorityColor(job.priority)}`}></div>
-                            <Badge variant="secondary" className="text-xs px-2 py-0.5">
-                              {job.job_number}
-                            </Badge>
-                          </div>
-                          <h3 className="font-medium text-sm leading-tight truncate">{job.title}</h3>
-                          <p className="text-xs text-muted-foreground mt-1">{job.customers?.name}</p>
-                        </div>
-                        <Badge 
-                          variant="outline" 
-                          className={`text-xs shrink-0 ${
-                            job.status === 'scheduled' ? 'border-primary/30 text-primary bg-primary/10' :
-                            job.status === 'in_progress' ? 'border-destructive/30 text-destructive bg-destructive/10' :
-                            'border-muted-foreground/30'
-                          }`}
-                        >
-                          {job.status === 'scheduled' ? 'Scheduled' : 
-                           job.status === 'in_progress' ? 'In Progress' : job.status}
-                        </Badge>
-                      </div>
-
-                      {/* Job Details */}
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {new Date(job.scheduled_date).toLocaleDateString()}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {new Date(job.scheduled_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                        </div>
-                      </div>
-
-                      {/* Location */}
-                      {job.customers?.short_address && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground mb-4">
-                          <MapPin className="w-3 h-3" />
-                          <span className="truncate">{job.customers.short_address}</span>
-                        </div>
-                      )}
-
-                      {/* Action Buttons */}
-                      <div className="flex gap-2 mt-4">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openNavigation(job)}
-                          className="flex-1 h-9 text-xs"
-                        >
-                          <Navigation className="w-3.5 h-3.5 mr-1.5" />
-                          Navigate
-                        </Button>
-                        {job.status === 'scheduled' && (
-                          <Button
-                            size="sm"
-                            onClick={() => startJob(job.id)}
-                            className="flex-1 h-9 text-xs bg-green-600 hover:bg-green-700"
-                          >
-                            <Play className="w-3.5 h-3.5 mr-1.5" />
-                            Start Job
-                          </Button>
-                        )}
-                         <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-9 w-9">
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleViewDetails(job)}>
-                              <FileText className="mr-2 h-4 w-4" />
-                              <span>View Details</span>
-                            </DropdownMenuItem>
-                            {job.customers?.phone && (
-                              <DropdownMenuItem onClick={() => callCustomer(job.customers.phone)}>
-                                <Phone className="mr-2 h-4 w-4" />
-                                <span>Call Customer</span>
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </CardContent>
+            ) : (
+              <div className="space-y-3">
+                {/* Grouped by day with sticky headers */}
+                {groupedJobs.length === 0 ? (
+                  <Card className="p-8 text-center">
+                    <div className="text-muted-foreground text-sm">No jobs found</div>
                   </Card>
-                ))
-              )}
-            </div>
+                ) : (
+                  groupedJobs.map(([isoKey, jobs]) => {
+                    const d = new Date(isoKey);
+                    return (
+                      <div key={isoKey} className="space-y-3">
+                        <div className="sticky top-[96px] z-40 bg-background/95 backdrop-blur px-1 py-2 font-medium text-sm border-b">
+                          {formatDayLabel(d)}
+                        </div>
+                        {jobs.map((job: any) => (
+                          <Card key={job.id} className="overflow-hidden border-l-4 border-l-primary">
+                            <CardContent className="p-4">
+                              {/* Job Header */}
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <div className={`w-2 h-2 rounded-full ${getPriorityColor(job.priority)}`}></div>
+                                    <Badge variant="secondary" className="text-xs px-2 py-0.5">
+                                      {job.job_number}
+                                    </Badge>
+                                  </div>
+                                  <h3 className="font-medium text-sm leading-tight truncate">{job.title}</h3>
+                                  <p className="text-xs text-muted-foreground mt-1">{job.customers?.name}</p>
+                                </div>
+                                <Badge 
+                                  variant="outline" 
+                                  className={`text-xs shrink-0 ${getStatusBadgeStyle(job.status)}`}
+                                >
+                                  {job.status === 'scheduled' ? 'Scheduled' : 
+                                   job.status === 'in_progress' ? 'In Progress' : job.status}
+                                </Badge>
+                              </div>
+
+                              {/* Job Details */}
+                              <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
+                                <div className="flex items-center gap-1">
+                                  <Calendar className="w-3 h-3" />
+                                  {formatDate(new Date(job.scheduled_date))}
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {formatTime(new Date(job.scheduled_date))}
+                                  <span className="ml-2">· {relativeTime(new Date(job.scheduled_date))}</span>
+                                </div>
+                              </div>
+
+                              {/* Location */}
+                              {job.customers?.short_address && (
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground mb-4">
+                                  <MapPin className="w-3 h-3" />
+                                  <span className="truncate">{job.customers.short_address}</span>
+                                </div>
+                              )}
+
+                              {/* Action Buttons */}
+                              <div className="flex gap-2 mt-4">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => openNavigation(job)}
+                                  className="flex-1 h-9 text-xs"
+                                >
+                                  <Navigation className="w-3.5 h-3.5 mr-1.5" />
+                                  Navigate
+                                </Button>
+                                {job.status === 'scheduled' && (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => startJob(job.id)}
+                                    className="flex-1 h-9 text-xs bg-green-600 hover:bg-green-700"
+                                  >
+                                    <Play className="w-3.5 h-3.5 mr-1.5" />
+                                    Start Job
+                                  </Button>
+                                )}
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-9 w-9">
+                                      <MoreVertical className="w-4 h-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => { setSelectedJob(job); setShowJobDetails(true); }}>
+                                      <FileText className="mr-2 h-4 w-4" />
+                                      <span>View Details</span>
+                                    </DropdownMenuItem>
+                                    {job.customers?.phone && (
+                                      <DropdownMenuItem onClick={() => callCustomer(job.customers.phone)}>
+                                        <Phone className="mr-2 h-4 w-4" />
+                                        <span>Call Customer</span>
+                                      </DropdownMenuItem>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
           </>
         ) : (
           <JobHistory />
@@ -473,6 +591,8 @@ const WorkerDashboard = () => {
           }}
         />
       )}
+
+      <BottomNavBar activeTab={activeTab} setActiveTab={(t: 'current'|'history') => setActiveTab(t)} />
     </div>
   );
 };
