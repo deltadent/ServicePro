@@ -124,12 +124,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setError(null);
     
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ 
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ 
         email, 
         password 
       });
       
-      if (error) throw error;
+      if (signInError) throw signInError;
+      if (!signInData.user) throw new Error("Sign in failed");
+
+      // Check if the user is active
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('is_active')
+        .eq('id', signInData.user.id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      if (!profileData.is_active) {
+        await supabase.auth.signOut();
+        const inactiveError = new Error("Your account is inactive. Please contact an administrator.");
+        setError(inactiveError.message);
+        return { error: inactiveError };
+      }
       
       return { error: null };
     } catch (error: any) {

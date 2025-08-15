@@ -25,6 +25,8 @@ interface Technician {
   hire_date: string;
   is_active: boolean;
   created_at: string;
+  login_credential_email: string | null;
+  login_credential_id: string | null;
 }
 
 const TechnicianManagementFull = () => {
@@ -35,6 +37,8 @@ const TechnicianManagementFull = () => {
   const [editingTechnician, setEditingTechnician] = useState<Technician | null>(null);
   const [formData, setFormData] = useState({
     full_name: '',
+    email: '',
+    password: '',
     phone: '',
     employee_id: '',
     department: '',
@@ -76,28 +80,58 @@ const TechnicianManagementFull = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!editingTechnician) {
-      toast({
-        title: "Error",
-        description: "Can only edit existing technicians",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update(formData)
-        .eq('id', editingTechnician.id);
 
-      if (error) throw error;
-      
-      toast({
-        title: "Success",
-        description: "Technician updated successfully"
-      });
+    try {
+      if (editingTechnician) {
+        // Update existing technician
+        const { error } = await supabase
+          .from('profiles')
+          .update({
+            full_name: formData.full_name,
+            email: formData.email,
+            phone: formData.phone,
+            employee_id: formData.employee_id,
+            department: formData.department,
+            role: formData.role,
+            is_active: formData.is_active,
+          })
+          .eq('id', editingTechnician.id);
+
+        if (error) throw error;
+        
+        toast({
+          title: "Success",
+          description: "Technician updated successfully"
+        });
+      } else {
+        // Add new technician
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+        });
+
+        if (authError) throw authError;
+        if (!authData.user) throw new Error("User not created");
+
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ 
+            full_name: formData.full_name,
+            phone: formData.phone,
+            employee_id: formData.employee_id,
+            department: formData.department,
+            role: formData.role,
+            is_active: formData.is_active,
+          })
+          .eq('id', authData.user.id);
+
+        if (profileError) throw profileError;
+
+        toast({
+          title: "Success",
+          description: "Technician added successfully"
+        });
+      }
 
       setIsDialogOpen(false);
       setEditingTechnician(null);
@@ -116,6 +150,8 @@ const TechnicianManagementFull = () => {
     setEditingTechnician(technician);
     setFormData({
       full_name: technician.full_name || '',
+      email: technician.email || '',
+      password: '',
       phone: technician.phone || '',
       employee_id: technician.employee_id || '',
       department: technician.department || '',
@@ -152,6 +188,8 @@ const TechnicianManagementFull = () => {
   const resetForm = () => {
     setFormData({
       full_name: '',
+      email: '',
+      password: '',
       phone: '',
       employee_id: '',
       department: '',
@@ -196,28 +234,43 @@ const TechnicianManagementFull = () => {
                 {editingTechnician ? 'Update' : 'Add a new'} technician to your team.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4 p-1">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="full_name">Full Name</Label>
                   <Input id="full_name" value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} />
                 </div>
                 <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+                </div>
+              </div>
+              
+              {!editingTechnician && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="password">Password</Label>
+                    <Input id="password" type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
                   <Label htmlFor="employee_id">Employee ID</Label>
                   <Input id="employee_id" value={formData.employee_id} onChange={(e) => setFormData({ ...formData, employee_id: e.target.value })} />
                 </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="phone">Phone</Label>
                   <Input id="phone" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="department">Department</Label>
                   <Input id="department" value={formData.department} onChange={(e) => setFormData({ ...formData, department: e.target.value })} />
                 </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="role">Role</Label>
                   <Select value={formData.role} onValueChange={(value: 'admin' | 'worker') => setFormData({ ...formData, role: value })}>
@@ -228,12 +281,16 @@ const TechnicianManagementFull = () => {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex items-center space-x-2 pt-6">
                   <Switch id="is_active" checked={formData.is_active} onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })} />
                   <Label htmlFor="is_active">Active Status</Label>
                 </div>
               </div>
-              <div className="flex justify-end space-x-2">
+              
+              <div className="flex justify-end space-x-2 pt-4">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
                 <Button type="submit">{editingTechnician ? 'Update' : 'Add'} Technician</Button>
               </div>
