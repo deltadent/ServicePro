@@ -8,7 +8,7 @@ interface BottomNavBarProps {
 
 const BottomNavBar = ({ activeTab, setActiveTab }: BottomNavBarProps) => {
   return (
-    <div className="fixed inset-x-0 bottom-0 bg-background border-t z-50 sm:hidden">
+    <div className="fixed inset-x-0 bottom-0 bg-background border-t z-50">
       <div className="flex justify-around items-center h-16">
         <Button
           variant="ghost"

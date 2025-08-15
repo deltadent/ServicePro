@@ -311,7 +311,7 @@ const WorkerDashboard = () => {
   // --- Loading skeleton ---
   if (loading) {
     return (
-      <div className="min-h-screen bg-muted/30 pb-20 sm:pb-6">
+      <div className="h-screen bg-muted/30 flex flex-col">
         <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -331,7 +331,7 @@ const WorkerDashboard = () => {
           </div>
         </div>
 
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-4 overflow-y-auto">
           <div className="grid grid-cols-2 gap-3">
             {[0,1].map(i => (
               <Card key={i} className="bg-gradient-to-br from-muted/40 to-muted/20">
@@ -361,7 +361,7 @@ const WorkerDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-muted/30 pb-20 sm:pb-6">
+    <div className="h-screen bg-muted/30 flex flex-col">
       {/* Header */}
       <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border p-4 sm:p-6">
         <div className="flex items-center justify-between">
@@ -400,7 +400,7 @@ const WorkerDashboard = () => {
         </div>
       </div>
 
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-4 flex-1 overflow-y-auto">
         {activeTab === 'current' ? (
           <>
             {/* Stats overview */}
