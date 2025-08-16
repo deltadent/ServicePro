@@ -1,0 +1,51 @@
+"use client";
+import { Menu } from "@/components/admin-panel/menu";
+import { SidebarToggle } from "@/components/admin-panel/sidebar-toggle";
+import { Button } from "@/components/ui/button";
+import { useSidebar } from "@/hooks/use-sidebar";
+import { cn } from "@/lib/utils";
+import { Wrench } from "lucide-react";
+import { Link } from "react-router-dom";
+import { LucideProps } from "lucide-react";
+import { ForwardRefExoticComponent, RefAttributes } from "react";
+
+export function Sidebar({ menuItems }: {
+  menuItems: {
+    icon: ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>;
+    label: string;
+    path: string;
+  }[];
+}) {
+  const { isOpen, toggleOpen, getOpenState, setIsHover, settings } = useSidebar();
+  return (
+    <aside
+      className={cn(
+        "fixed top-0 left-0 z-20 h-screen -translate-x-full lg:translate-x-0 transition-[width] ease-in-out duration-300",
+        !getOpenState() ? "w-[90px]" : "w-60",
+        settings.disabled && "hidden"
+      )}
+    >
+      <SidebarToggle isOpen={isOpen} setIsOpen={toggleOpen} />
+      <div
+        onMouseEnter={() => setIsHover(true)}
+        onMouseLeave={() => setIsHover(false)}
+        className="relative h-full flex flex-col px-3 py-4 overflow-y-auto shadow-md dark:shadow-zinc-800"
+      >
+        <div className="flex items-center gap-2 px-4">
+          <Wrench className="w-6 h-6 mr-1" />
+          <h1
+            className={cn(
+              "font-bold text-lg whitespace-nowrap transition-[transform,opacity,display] ease-in-out duration-300",
+              !getOpenState()
+                ? "-translate-x-96 opacity-0 hidden"
+                : "translate-x-0 opacity-100"
+            )}
+          >
+            ServicePro
+          </h1>
+        </div>
+        <Menu isOpen={getOpenState()} menuItems={menuItems} />
+      </div>
+    </aside>
+  );
+}
