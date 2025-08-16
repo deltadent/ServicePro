@@ -1,8 +1,9 @@
-"use client";
+"use client"
 
-import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal, User, CreditCard, Archive } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ColumnDef } from "@tanstack/react-table"
+import { MoreHorizontal, ArrowUpDown } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,39 +11,30 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
+} from "@/components/ui/dropdown-menu"
+import { Edit, Archive, Trash2 } from "lucide-react"
 
+// This type is used to define the shape of our data.
+// You can use a Zod schema here if you want.
 export type Customer = {
-  id: string;
-  name: string;
-  email: string | null;
-  phone: string | null;
-  address: string | null;
-  customer_type: string;
-};
+  id: string
+  name: string
+  customer_type: "residential" | "commercial"
+  phone: string | null
+  email: string | null
+  address: string | null
+  short_address: string | null
+  city: string | null
+  state: string | null
+  zip_code: string | null
+  is_active: boolean
+}
 
-export const getColumns = (handleEdit: (customer: Customer) => void, handleArchive: (customer: Customer) => void): ColumnDef<Customer>[] => [
-  {
-    id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={table.getIsAllPageRowsSelected()}
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
+export const getColumns = (
+  handleEdit: (customer: Customer) => void,
+  handleArchive: (customer: Customer) => void,
+  handleDelete: (customerId: string) => void
+): ColumnDef<Customer>[] => [
   {
     accessorKey: "name",
     header: ({ column }) => {
@@ -54,44 +46,38 @@ export const getColumns = (handleEdit: (customer: Customer) => void, handleArchi
           Name
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
-      );
+      )
     },
-  },
-  {
-    accessorKey: "email",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Email
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      );
-    },
-  },
-  {
-    accessorKey: "phone",
-    header: "Phone",
-  },
-  {
-    accessorKey: "address",
-    header: "Address",
   },
   {
     accessorKey: "customer_type",
     header: "Type",
+  },
+  {
+    accessorKey: "phone",
+    header: "Contact Phone",
+  },
+  {
+    accessorKey: "email",
+    header: "Email",
+  },
+  {
+    accessorKey: "address",
+    header: "Address",
     cell: ({ row }) => {
-      const customer = row.original;
-      return <Badge variant={customer.customer_type === 'residential' ? 'default' : 'secondary'}>{customer.customer_type}</Badge>;
+      const customer = row.original
+      return <span>{customer.short_address || customer.address}</span>
     },
+  },
+  {
+    accessorKey: "short_address",
+    header: "Short Saudi Address",
   },
   {
     id: "actions",
     cell: ({ row }) => {
-      const customer = row.original;
-
+      const customer = row.original
+ 
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -102,28 +88,21 @@ export const getColumns = (handleEdit: (customer: Customer) => void, handleArchi
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(customer.id)}
-            >
-              Copy customer ID
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => handleEdit(customer)}>
-              <User className="mr-2 h-4 w-4" />
-              <span>View customer</span>
+              <Edit className="mr-2 h-4 w-4" />
+              <span>Edit</span>
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              <CreditCard className="mr-2 h-4 w-4" />
-              <span>View payment history</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => handleArchive(customer)}>
               <Archive className="mr-2 h-4 w-4" />
-              <span>Archive</span>
+              <span>{customer.is_active ? "Archive" : "Unarchive"}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleDelete(customer.id)}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              <span>Delete</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-      );
+      )
     },
   },
-];
+]
