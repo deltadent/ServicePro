@@ -1,6 +1,5 @@
 "use client";
 
-import { Footer } from "@/components/admin-panel/footer";
 import { Sidebar } from "@/components/admin-panel/sidebar";
 import { ContentLayout } from "@/components/admin-panel/content-layout";
 import { useSidebar } from "@/hooks/use-sidebar";
@@ -49,14 +48,6 @@ export default function AdminPanelLayout({
           {children}
         </ContentLayout>
       </main>
-      <footer
-        className={cn(
-          "transition-[margin-left] ease-in-out duration-300",
-          !settings.disabled && (!getOpenState() ? "lg:ml-[90px]" : "lg:ml-60")
-        )}
-      >
-        <Footer />
-      </footer>
     </>
   );
 }
