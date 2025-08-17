@@ -1,12 +1,16 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Plus, Search, Filter, Users, Building, TrendingUp, Download, Upload, RefreshCw, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from '@/integrations/supabase/client';
@@ -16,13 +20,43 @@ import { DataTable } from "@/components/ui/DataTable";
 import { getColumns, Customer } from "./CustomerColumns";
 import CustomerDetails from "./CustomerDetails";
 
+interface CustomerStats {
+  total: number;
+  active: number;
+  archived: number;
+  residential: number;
+  commercial: number;
+  withEmail: number;
+  withPhone: number;
+  recentlyAdded: number;
+}
+
+interface FilterOptions {
+  customerType: string;
+  hasEmail: string;
+  hasPhone: string;
+  city: string;
+  state: string;
+  dateRange: string;
+}
+
 const CustomerManagementFull = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<FilterOptions>({
+    customerType: 'all',
+    hasEmail: 'all',
+    hasPhone: 'all',
+    city: '',
+    state: '',
+    dateRange: 'all'
+  });
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -36,6 +70,53 @@ const CustomerManagementFull = () => {
     is_active: true
   });
   const { toast } = useToast();
+
+  // Customer statistics
+  const customerStats = useMemo((): CustomerStats => {
+    const total = customers.length;
+    const active = customers.filter(c => c.is_active).length;
+    const archived = customers.filter(c => !c.is_active).length;
+    const residential = customers.filter(c => c.customer_type === 'residential').length;
+    const commercial = customers.filter(c => c.customer_type === 'commercial').length;
+    const withEmail = customers.filter(c => c.email && c.email.trim()).length;
+    const withPhone = customers.filter(c => c.phone && c.phone.trim()).length;
+    const recentlyAdded = customers.filter(c => {
+      const createdDate = new Date(c.created_at || '');
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      return createdDate > weekAgo;
+    }).length;
+
+    return {
+      total,
+      active,
+      archived,
+      residential,
+      commercial,
+      withEmail,
+      withPhone,
+      recentlyAdded
+    };
+  }, [customers]);
+
+  // Get unique cities and states for filter options
+  const uniqueCities = useMemo(() => {
+    const cities = customers
+      .map(c => c.city)
+      .filter(Boolean)
+      .filter((city, index, arr) => arr.indexOf(city) === index)
+      .sort();
+    return cities;
+  }, [customers]);
+
+  const uniqueStates = useMemo(() => {
+    const states = customers
+      .map(c => c.state)
+      .filter(Boolean)
+      .filter((state, index, arr) => arr.indexOf(state) === index)
+      .sort();
+    return states;
+  }, [customers]);
 
   useEffect(() => {
     fetchCustomers();
