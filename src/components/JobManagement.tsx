@@ -276,52 +276,66 @@ const JobManagement = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex flex-col items-center justify-center h-64 space-y-4">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <p className="text-muted-foreground">Loading job data...</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Job Management</h2>
-          <p className="text-gray-600">Manage and track all service jobs ({filteredAndSortedJobs.length} jobs)</p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => fetchJobs(true)}
-            disabled={refreshing}
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <Button
-            variant="outline"
-            onClick={exportJobsData}
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Export CSV
-          </Button>
-          {isAdmin && (
-            <JobCreationProvider>
-              <JobCreationDialog onJobCreated={() => fetchJobs(true)} />
-            </JobCreationProvider>
-          )}
+    <div className="space-y-6 p-1">
+      <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-6 border border-purple-100">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+              <Wrench className="w-7 h-7 text-purple-600" />
+              Job Management
+            </h2>
+            <p className="text-gray-600 mt-2">Manage and track all service jobs ({filteredAndSortedJobs.length} jobs)</p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => fetchJobs(true)}
+              disabled={refreshing}
+              className="border-gray-200 hover:bg-gray-50 rounded-lg"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button
+              variant="outline"
+              onClick={exportJobsData}
+              className="border-gray-200 hover:bg-gray-50 rounded-lg"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export CSV
+            </Button>
+            {isAdmin && (
+              <JobCreationProvider>
+                <JobCreationDialog onJobCreated={() => fetchJobs(true)} />
+              </JobCreationProvider>
+            )}
+          </div>
         </div>
       </div>
 
       <Tabs defaultValue="list" className="w-full">
-        <TabsList>
-          <TabsTrigger value="list">
-            <List className="w-4 h-4 mr-2" />
-            List
+        <TabsList className="grid w-full max-w-md grid-cols-2 bg-white border border-gray-200 rounded-lg p-1">
+          <TabsTrigger 
+            value="list" 
+            className="flex items-center gap-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:border-blue-200 rounded-md"
+          >
+            <List className="w-4 h-4" />
+            List View
           </TabsTrigger>
-          <TabsTrigger value="schedule">
-            <Calendar className="w-4 h-4 mr-2" />
-            Schedule
+          <TabsTrigger 
+            value="schedule"
+            className="flex items-center gap-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:border-blue-200 rounded-md"
+          >
+            <Calendar className="w-4 h-4" />
+            Calendar
           </TabsTrigger>
         </TabsList>
         <TabsContent value="list">

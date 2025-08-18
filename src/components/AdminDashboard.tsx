@@ -147,110 +147,145 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Admin Dashboard</h2>
-        <p className="text-gray-600">Overview of your field service operations</p>
+    <div className="space-y-6 p-1">
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
+        <h2 className="text-3xl font-bold text-gray-900">Admin Dashboard</h2>
+        <p className="text-gray-600 mt-2">Overview of your field service operations</p>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards - Beautiful UI Style */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-          <CardContent className="p-4">
+        <Card className="card-elegant border-l-4 border-l-blue-400 hover:shadow-lg transition-shadow">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-100 text-sm">Total Jobs</p>
-                <p className="text-2xl font-bold">{stats.totalJobs}</p>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Total Jobs</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.totalJobs}</p>
+                <p className="text-xs text-blue-600 mt-1">All time</p>
               </div>
-              <Wrench className="w-8 h-8 text-blue-200" />
+              <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
+                <Wrench className="w-6 h-6 text-blue-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
-          <CardContent className="p-4">
+        <Card className="card-elegant border-l-4 border-l-green-400 hover:shadow-lg transition-shadow">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 text-sm">Completed</p>
-                <p className="text-2xl font-bold">{stats.completedJobs}</p>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Completed</p>
+                <p className="text-3xl font-bold text-green-700">{stats.completedJobs}</p>
+                <p className="text-xs text-green-600 mt-1">Successful jobs</p>
               </div>
-              <CheckCircle className="w-8 h-8 text-green-200" />
+              <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white">
-          <CardContent className="p-4">
+        <Card className="card-elegant border-l-4 border-l-yellow-400 hover:shadow-lg transition-shadow">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-yellow-100 text-sm">In Progress</p>
-                <p className="text-2xl font-bold">{stats.inProgressJobs}</p>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">In Progress</p>
+                <p className="text-3xl font-bold text-yellow-700">{stats.inProgressJobs}</p>
+                <p className="text-xs text-yellow-600 mt-1">Active jobs</p>
               </div>
-              <Clock className="w-8 h-8 text-yellow-200" />
+              <div className="w-12 h-12 bg-yellow-50 rounded-xl flex items-center justify-center">
+                <Clock className="w-6 h-6 text-yellow-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
-          <CardContent className="p-4">
+        <Card className="card-elegant border-l-4 border-l-purple-400 hover:shadow-lg transition-shadow">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-100 text-sm">Revenue</p>
-                <p className="text-2xl font-bold">${stats.monthlyRevenue.toFixed(0)}</p>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Revenue</p>
+                <p className="text-3xl font-bold text-purple-700">${stats.monthlyRevenue.toFixed(0)}</p>
+                <p className="text-xs text-purple-600 mt-1">This month</p>
               </div>
-              <DollarSign className="w-8 h-8 text-purple-200" />
+              <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center">
+                <DollarSign className="w-6 h-6 text-purple-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Secondary Stats */}
+      {/* Secondary Stats - Elegant Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardContent className="p-4">
+        <Card className="card-elegant hover:shadow-lg transition-shadow">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm">Total Customers</p>
-                <p className="text-xl font-bold">{stats.totalCustomers}</p>
-                <p className="text-xs text-green-600">+12% from last month</p>
+                <p className="text-sm font-medium text-gray-500">Total Customers</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{stats.totalCustomers}</p>
+                <div className="flex items-center mt-2">
+                  <Badge size="sm" className="bg-green-100 text-green-700 border-green-200">
+                    +12% from last month
+                  </Badge>
+                </div>
               </div>
-              <Users className="w-6 h-6 text-blue-600" />
+              <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
+                <Users className="w-6 h-6 text-blue-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-4">
+        <Card className="card-elegant hover:shadow-lg transition-shadow">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm">Active Technicians</p>
-                <p className="text-xl font-bold">{stats.totalTechnicians}</p>
-                <p className="text-xs text-blue-600">Field staff</p>
+                <p className="text-sm font-medium text-gray-500">Active Technicians</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{stats.totalTechnicians}</p>
+                <div className="flex items-center mt-2">
+                  <Badge size="sm" className="bg-blue-100 text-blue-700 border-blue-200">
+                    Field staff
+                  </Badge>
+                </div>
               </div>
-              <Wrench className="w-6 h-6 text-green-600" />
+              <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center">
+                <Wrench className="w-6 h-6 text-green-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-4">
+        <Card className="card-elegant hover:shadow-lg transition-shadow">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm">Avg Completion</p>
-                <p className="text-xl font-bold">{formatDuration(stats.avgCompletionTime)}</p>
-                <p className="text-xs text-purple-600">Per job</p>
+                <p className="text-sm font-medium text-gray-500">Avg Completion</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{formatDuration(stats.avgCompletionTime)}</p>
+                <div className="flex items-center mt-2">
+                  <Badge size="sm" className="bg-purple-100 text-purple-700 border-purple-200">
+                    Per job
+                  </Badge>
+                </div>
               </div>
-              <TrendingUp className="w-6 h-6 text-purple-600" />
+              <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-purple-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Job Progress Overview */}
-      <Card>
+      <Card className="card-elegant">
         <CardHeader>
-          <CardTitle>Job Status Overview</CardTitle>
-          <CardDescription>Current distribution of job statuses</CardDescription>
+          <CardTitle className="flex items-center gap-2 text-xl text-gray-900">
+            <BarChart3 className="w-5 h-5 text-blue-600" />
+            Job Status Overview
+          </CardTitle>
+          <CardDescription className="text-gray-500">
+            Current distribution of job statuses
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -288,23 +323,33 @@ const AdminDashboard = () => {
       </Card>
 
       {/* Recent Jobs */}
-      <Card>
+      <Card className="card-elegant">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-xl text-gray-900">
             <Calendar className="w-5 h-5 text-blue-600" />
             Recent Jobs
           </CardTitle>
-          <CardDescription>Latest job assignments and updates</CardDescription>
+          <CardDescription className="text-gray-500">
+            Latest job assignments and updates
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {recentJobs.map((job) => (
-              <div key={job.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div key={job.id} className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-50/50 rounded-xl border border-gray-100 hover:shadow-md transition-shadow">
                 <div className="flex items-center space-x-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-medium text-sm">{job.title}</h4>
-                      <Badge className={getStatusColor(job.status)} variant="outline">
+                      <h4 className="font-semibold text-sm text-gray-900">{job.title}</h4>
+                      <Badge 
+                        size="sm" 
+                        className={
+                          job.status === 'completed' ? 'bg-green-100 text-green-700 border-green-200' :
+                          job.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                          job.status === 'scheduled' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                          'bg-gray-100 text-gray-700 border-gray-200'
+                        }
+                      >
                         {job.status?.replace('_', ' ')}
                       </Badge>
                     </div>

@@ -34,24 +34,24 @@ import BottomNavBar from './BottomNavBar';
 // --- Helpers ---
 const getPriorityColor = (priority: string) => {
   switch (priority) {
-    case 'urgent': return 'bg-destructive';
-    case 'high': return 'bg-orange-500';
-    case 'medium': return 'bg-yellow-500';
-    case 'low': return 'bg-green-500';
-    default: return 'bg-muted-foreground';
+    case 'urgent': return 'bg-red-100 text-red-700 border-red-200';
+    case 'high': return 'bg-pink-100 text-pink-700 border-pink-200';
+    case 'medium': return 'bg-purple-100 text-purple-700 border-purple-200';
+    case 'low': return 'bg-green-100 text-green-700 border-green-200';
+    default: return 'bg-gray-100 text-gray-700 border-gray-200';
   }
 };
 
 const getStatusBadgeStyle = (status: string) => {
   switch (status) {
     case 'scheduled':
-      return 'border-primary/30 text-primary bg-primary/10';
+      return 'bg-blue-100 text-blue-700 border-blue-200';
     case 'in_progress':
-      return 'border-destructive/30 text-destructive bg-destructive/10';
+      return 'bg-yellow-100 text-yellow-700 border-yellow-200';
     case 'completed':
-      return 'border-emerald-400/30 text-emerald-600 bg-emerald-500/10';
+      return 'bg-green-100 text-green-700 border-green-200';
     default:
-      return 'border-muted-foreground/30';
+      return 'bg-gray-100 text-gray-700 border-gray-200';
   }
 };
 
@@ -361,41 +361,49 @@ const WorkerDashboard = () => {
   }
 
   return (
-    <div className="h-screen bg-muted/30 flex flex-col">
+    <div className="h-screen bg-gradient-to-br from-blue-50/50 to-indigo-50/50 flex flex-col">
       {/* Header */}
-      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border p-4 sm:p-6">
+      <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm p-4 sm:p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <User className="w-4 h-4 text-primary-foreground" />
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center shadow-md">
+              <User className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-foreground">Dashboard</h1>
-              <p className="text-xs text-muted-foreground">Welcome back!</p>
+              <h1 className="text-xl font-bold text-gray-900">Worker Dashboard</h1>
+              <p className="text-sm text-gray-600">Welcome back! Let's get productive</p>
             </div>
           </div>
-          <Badge variant="secondary" className="text-xs">
-            {stats.pendingJobs} active
-          </Badge>
+          <div className="px-3 py-1.5 bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 text-sm font-semibold rounded-full border border-green-200">
+            {stats.pendingJobs} active jobs
+          </div>
         </div>
 
-        {/* Tabs (mobile visible when >= sm as in original) */}
-        <div className="hidden sm:flex gap-1 mt-4 p-1 bg-muted rounded-lg">
+        {/* Tabs - Elegant Design */}
+        <div className="hidden sm:flex gap-1 mt-6 p-1 bg-gray-100 rounded-xl border border-gray-200">
           <Button
             variant={activeTab === 'current' ? 'default' : 'ghost'}
             onClick={() => setActiveTab('current')}
             size="sm"
-            className="flex-1 h-8 text-xs font-medium"
+            className={`flex-1 h-9 text-sm font-medium rounded-lg transition-all ${
+              activeTab === 'current' 
+                ? 'bg-white text-blue-700 shadow-sm border border-blue-200' 
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            }`}
           >
-            Current
+            📋 Current Jobs
           </Button>
           <Button
             variant={activeTab === 'history' ? 'default' : 'ghost'}
             onClick={() => setActiveTab('history')}
             size="sm"
-            className="flex-1 h-8 text-xs font-medium"
+            className={`flex-1 h-9 text-sm font-medium rounded-lg transition-all ${
+              activeTab === 'history' 
+                ? 'bg-white text-blue-700 shadow-sm border border-blue-200' 
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            }`}
           >
-            History
+            📈 History
           </Button>
         </div>
       </div>
@@ -403,10 +411,10 @@ const WorkerDashboard = () => {
       <div className="p-4 space-y-4 flex-1 overflow-y-auto">
         {activeTab === 'current' ? (
           <>
-            {/* Stats overview */}
-            <div className="grid grid-cols-2 gap-3">
-              <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-                <CardContent className="p-3">
+            {/* Stats overview - Beautiful Cards */}
+            <div className="grid grid-cols-2 gap-4">
+              <Card className="card-elegant border-l-4 border-l-blue-400 hover:shadow-lg transition-shadow">
+                <CardContent className="p-4">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-primary">{stats.todayJobs}</div>
                     <div className="text-xs text-muted-foreground">Today's Jobs</div>

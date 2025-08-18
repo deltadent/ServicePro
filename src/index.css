@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 0 0% 98%;
     --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
@@ -34,9 +34,44 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
+    
+    /* Priority Colors - inspired by the beautiful UI */
+    --priority-high: 0 84% 92%;
+    --priority-high-foreground: 0 84% 35%;
+    --priority-high-border: 0 84% 85%;
+    
+    --priority-medium: 262 83% 92%;
+    --priority-medium-foreground: 262 83% 45%;
+    --priority-medium-border: 262 83% 85%;
+    
+    --priority-low: 142 76% 92%;
+    --priority-low-foreground: 142 76% 35%;
+    --priority-low-border: 142 76% 85%;
+    
+    /* Status Colors */
+    --status-todo: 45 93% 92%;
+    --status-todo-foreground: 45 93% 25%;
+    --status-todo-border: 45 93% 85%;
+    
+    --status-progress: 214 95% 92%;
+    --status-progress-foreground: 214 95% 35%;
+    --status-progress-border: 214 95% 85%;
+    
+    --status-completed: 142 76% 92%;
+    --status-completed-foreground: 142 76% 35%;
+    --status-completed-border: 142 76% 85%;
+    
+    /* Appointment/Service Colors */
+    --service-medical: 328 85% 92%;
+    --service-medical-foreground: 328 85% 35%;
+    --service-medical-border: 328 85% 85%;
+    
+    --service-business: 214 95% 92%;
+    --service-business-foreground: 214 95% 35%;
+    --service-business-border: 214 95% 85%;
 
-    --sidebar-background: 0 0% 98%;
+    --sidebar-background: 0 0% 99%;
 
     --sidebar-foreground: 240 5.3% 26.1%;
 
@@ -44,11 +79,11 @@
 
     --sidebar-primary-foreground: 0 0% 98%;
 
-    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent: 240 4.8% 97%;
 
     --sidebar-accent-foreground: 240 5.9% 10%;
 
-    --sidebar-border: 220 13% 91%;
+    --sidebar-border: 220 13% 93%;
 
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
@@ -99,5 +134,53 @@
 
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Custom utility classes for the new design system */
+@layer utilities {
+  .priority-high {
+    @apply bg-[hsl(var(--priority-high))] text-[hsl(var(--priority-high-foreground))] border-[hsl(var(--priority-high-border))];
+  }
+  
+  .priority-medium {
+    @apply bg-[hsl(var(--priority-medium))] text-[hsl(var(--priority-medium-foreground))] border-[hsl(var(--priority-medium-border))];
+  }
+  
+  .priority-low {
+    @apply bg-[hsl(var(--priority-low))] text-[hsl(var(--priority-low-foreground))] border-[hsl(var(--priority-low-border))];
+  }
+  
+  .status-todo {
+    @apply bg-[hsl(var(--status-todo))] text-[hsl(var(--status-todo-foreground))] border-[hsl(var(--status-todo-border))];
+  }
+  
+  .status-progress {
+    @apply bg-[hsl(var(--status-progress))] text-[hsl(var(--status-progress-foreground))] border-[hsl(var(--status-progress-border))];
+  }
+  
+  .status-completed {
+    @apply bg-[hsl(var(--status-completed))] text-[hsl(var(--status-completed-foreground))] border-[hsl(var(--status-completed-border))];
+  }
+  
+  .service-medical {
+    @apply bg-[hsl(var(--service-medical))] text-[hsl(var(--service-medical-foreground))] border-[hsl(var(--service-medical-border))];
+  }
+  
+  .service-business {
+    @apply bg-[hsl(var(--service-business))] text-[hsl(var(--service-business-foreground))] border-[hsl(var(--service-business-border))];
+  }
+  
+  .card-elegant {
+    @apply bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200;
+  }
+  
+  .priority-badge {
+    @apply px-3 py-1 rounded-full text-xs font-medium border;
+  }
+  
+  .status-badge {
+    @apply px-2.5 py-0.5 rounded-lg text-xs font-medium border;
   }
 }

@@ -61,6 +61,36 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				priority: {
+					high: 'hsl(var(--priority-high))',
+					'high-foreground': 'hsl(var(--priority-high-foreground))',
+					'high-border': 'hsl(var(--priority-high-border))',
+					medium: 'hsl(var(--priority-medium))',
+					'medium-foreground': 'hsl(var(--priority-medium-foreground))',
+					'medium-border': 'hsl(var(--priority-medium-border))',
+					low: 'hsl(var(--priority-low))',
+					'low-foreground': 'hsl(var(--priority-low-foreground))',
+					'low-border': 'hsl(var(--priority-low-border))'
+				},
+				status: {
+					todo: 'hsl(var(--status-todo))',
+					'todo-foreground': 'hsl(var(--status-todo-foreground))',
+					'todo-border': 'hsl(var(--status-todo-border))',
+					progress: 'hsl(var(--status-progress))',
+					'progress-foreground': 'hsl(var(--status-progress-foreground))',
+					'progress-border': 'hsl(var(--status-progress-border))',
+					completed: 'hsl(var(--status-completed))',
+					'completed-foreground': 'hsl(var(--status-completed-foreground))',
+					'completed-border': 'hsl(var(--status-completed-border))'
+				},
+				service: {
+					medical: 'hsl(var(--service-medical))',
+					'medical-foreground': 'hsl(var(--service-medical-foreground))',
+					'medical-border': 'hsl(var(--service-medical-border))',
+					business: 'hsl(var(--service-business))',
+					'business-foreground': 'hsl(var(--service-business-foreground))',
+					'business-border': 'hsl(var(--service-business-border))'
 				}
 			},
 			borderRadius: {
