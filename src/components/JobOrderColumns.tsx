@@ -20,11 +20,14 @@ export type JobOrder = {
   technician_name: string
   status: string
   ordered_by: string
-  profiles?: { full_name: string }[]; // Added array type
-  customers?: { name: string }[];     // Added array type
+  title: string
+  description: string
+  scheduled_date: string
+  profiles?: { full_name: string }[];
+  customers?: any;
 }
 
-export const columns: ColumnDef<JobOrder>[] = [
+export const getColumns = (onViewDetails: (jobOrder: JobOrder) => void): ColumnDef<JobOrder>[] => [
   {
     accessorKey: "job_number",
     header: "Job Order No",
@@ -64,7 +67,7 @@ export const columns: ColumnDef<JobOrder>[] = [
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem>View Details</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onViewDetails(jobOrder)}>View Details</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       )

@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/hooks/use-toast";
 import { geocodeAddress } from '@/utils/geocode';
@@ -221,32 +222,47 @@ const CustomerManagementFull = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold">Customer Management</h2>
-          <p className="text-muted-foreground">Manage your customer database</p>
+    <Card>
+      <CardHeader>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h2 className="text-2xl font-bold">Customer Management</h2>
+            <p className="text-muted-foreground">Manage your customer database</p>
+          </div>
+          <div className="text-right">
+            <Button onClick={handleAdd}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Customer
+            </Button>
+          </div>
         </div>
-        <Button onClick={handleAdd}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Customer
-        </Button>
-      </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <div className="flex items-center">
+            <Input
+              placeholder="Search customers..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-sm"
+            />
+          </div>
 
-
-      <Tabs defaultValue="active">
-        <TabsList>
-          <TabsTrigger value="active">Active</TabsTrigger>
-          <TabsTrigger value="archived">Archived</TabsTrigger>
-        </TabsList>
-        <TabsContent value="active">
-          <DataTable columns={columns} data={filteredCustomers.filter(c => c.is_active)} onRowClick={handleEdit} />
-        </TabsContent>
-        <TabsContent value="archived">
-          <DataTable columns={columns} data={filteredCustomers.filter(c => !c.is_active)} onRowClick={handleEdit} />
-        </TabsContent>
-      </Tabs>
-    </div>
+          <Tabs defaultValue="active">
+            <TabsList>
+              <TabsTrigger value="active">Active</TabsTrigger>
+              <TabsTrigger value="archived">Archived</TabsTrigger>
+            </TabsList>
+            <TabsContent value="active">
+              <DataTable columns={columns} data={filteredCustomers.filter(c => c.is_active)} onRowClick={handleEdit} />
+            </TabsContent>
+            <TabsContent value="archived">
+              <DataTable columns={columns} data={filteredCustomers.filter(c => !c.is_active)} onRowClick={handleEdit} />
+            </TabsContent>
+          </Tabs>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

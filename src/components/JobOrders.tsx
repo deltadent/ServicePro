@@ -2,16 +2,19 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Customer } from './CustomerColumns';
 import { DataTable } from './ui/DataTable';
-import { columns, JobOrder } from './JobOrderColumns';
+import { getColumns, JobOrder } from './JobOrderColumns';
 import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Plus } from 'lucide-react';
 import JobCreationDialog from './JobCreationDialog';
 import { JobCreationProvider } from '@/context/JobCreationContext';
 import { CalendarDialogProvider } from '@/context/CalendarDialogContext';
+import JobDetailsDialog from './JobDetailsDialog';
 
 const JobOrders = ({ customer }: { customer: Customer }) => {
   const [jobs, setJobs] = useState<JobOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedJob, setSelectedJob] = useState<JobOrder | null>(null);
 
   const fetchJobs = async () => {
     setLoading(true);
@@ -19,12 +22,9 @@ const JobOrders = ({ customer }: { customer: Customer }) => {
       const { data, error } = await supabase
         .from('jobs')
         .select(`
-          id,
-          job_number,
-          created_at,
-          status,
+          *,
           profiles ( full_name ),
-          customers ( name )
+          customers ( * )
         `)
         .eq('customer_id', customer.id)
         .order('created_at', { ascending: false });
@@ -32,11 +32,8 @@ const JobOrders = ({ customer }: { customer: Customer }) => {
       if (error) throw error;
 
       const formattedData = data.map((job: any) => ({
-        id: job.id,
-        job_number: job.job_number,
-        created_at: job.created_at,
+        ...job,
         technician_name: job.profiles?.full_name || 'N/A',
-        status: job.status,
         ordered_by: job.customers?.name || 'N/A',
       }));
 
@@ -56,21 +53,40 @@ const JobOrders = ({ customer }: { customer: Customer }) => {
     fetchJobs();
   };
 
+  const handleViewDetails = (jobOrder: JobOrder) => {
+    setSelectedJob(jobOrder);
+  };
+
+  const columns = getColumns(handleViewDetails);
+
   if (loading) {
     return <div>Loading...</div>;
   }
 
   return (
-    <div>
-      <div className="flex justify-end mb-4">
-        <CalendarDialogProvider>
-          <JobCreationProvider>
-            <JobCreationDialog onJobCreated={handleJobCreated} />
-          </JobCreationProvider>
-        </CalendarDialogProvider>
-      </div>
-      <DataTable columns={columns} data={jobs} />
-    </div>
+    <Card>
+      <CardHeader>
+        <div className="flex justify-between items-center">
+          <CardTitle>Job Orders</CardTitle>
+          <CalendarDialogProvider>
+            <JobCreationProvider>
+              <JobCreationDialog onJobCreated={handleJobCreated} />
+            </JobCreationProvider>
+          </CalendarDialogProvider>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <DataTable columns={columns} data={jobs} />
+      </CardContent>
+      {selectedJob && (
+        <JobDetailsDialog
+          job={selectedJob}
+          isOpen={!!selectedJob}
+          onClose={() => setSelectedJob(null)}
+          onJobUpdate={fetchJobs}
+        />
+      )}
+    </Card>
   );
 };
 
