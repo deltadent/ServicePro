@@ -7,10 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  MapPin, 
-  Phone, 
-  Mail, 
+import {
+  MapPin,
+  Phone,
+  Mail,
   Calendar,
   Edit,
   Save,
@@ -23,6 +23,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from "@/hooks/use-toast";
 import { useDevice } from "@/hooks/use-device";
+import { useNetwork } from '@/hooks/useNetwork';
+import { queueAction } from '@/lib/queue';
 import JobWorkflowStepper from './JobWorkflowStepper';
 import JobDocumentationPanel from './JobDocumentationPanel';
 import AddPartToJobDialog from './AddPartToJobDialog';
@@ -38,6 +40,7 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
   const { user } = useAuth();
   const { toast } = useToast();
   const { isMobile } = useDevice();
+  const online = useNetwork();
   
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -156,32 +159,52 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
     setLoading(true);
     try {
       const updateData: any = { status: newStatus };
-      
+      const timestamp = new Date().toISOString();
+
       if (newStatus === 'in_progress' && job.status === 'scheduled') {
-        updateData.started_at = new Date().toISOString();
+        updateData.started_at = timestamp;
       } else if (newStatus === 'completed' && job.status === 'in_progress') {
-        updateData.completed_at = new Date().toISOString();
+        updateData.completed_at = timestamp;
         updateData.work_summary = customerFeedback;
       }
 
-      const { error } = await supabase
-        .from('jobs')
-        .update(updateData)
-        .eq('id', job.id);
+      // Try online first, fallback to queue
+      if (online) {
+        const { error } = await supabase
+          .from('jobs')
+          .update(updateData)
+          .eq('id', job.id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: `Job ${newStatus.replace('_', ' ')} successfully`
-      });
-      
+        toast({
+          title: "Success",
+          description: `Job ${newStatus.replace('_', ' ')} successfully`
+        });
+      } else {
+        // Queue the action for offline sync
+        const event = newStatus === 'in_progress' ? 'check_in' : 'check_out';
+
+        await queueAction('CHECK', {
+          jobId: job.id,
+          event,
+          timestamp,
+          latitude: undefined, // GPS would be added here if available
+          longitude: undefined
+        });
+
+        toast({
+          title: "Queued",
+          description: `Job ${newStatus.replace('_', ' ')} will sync when online`
+        });
+      }
+
       if (onJobUpdate) onJobUpdate();
       onClose();
     } catch (error: any) {
       toast({
         title: "Error",
-        description: `Failed to update job status`,
+        description: online ? `Failed to update job status` : `Failed to queue action`,
         variant: "destructive"
       });
     } finally {
@@ -197,39 +220,68 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${job.id}_${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('job_photos')
-        .upload(filePath, file, { upsert: false });
+      if (online) {
+        // Online: upload directly
+        const filePath = `${fileName}`;
 
-      if (uploadError) throw uploadError;
+        const { error: uploadError } = await supabase.storage
+          .from('job_photos')
+          .upload(filePath, file, { upsert: false });
 
-      const { error: dbError } = await supabase
-        .from('job_photos')
-        .insert([
-          {
-            job_id: job.id,
-            description: workNotes || 'Job photo',
-            photo_type: selectedPhotoType,
-            uploaded_by: user?.id,
-            storage_path: filePath,
-          }
-        ]);
+        if (uploadError) throw uploadError;
 
-      if (dbError) throw dbError;
+        // Get public URL for the uploaded file
+        const { data: urlData } = supabase.storage
+          .from('job_photos')
+          .getPublicUrl(filePath);
 
-      toast({
-        title: "Success",
-        description: "Photo uploaded successfully"
-      });
+        if (!urlData.publicUrl) {
+          throw new Error('Failed to get public URL for uploaded photo');
+        }
 
-      fetchJobPhotos();
+        const { error: dbError } = await supabase
+          .from('job_photos')
+          .insert([
+            {
+              job_id: job.id,
+              path: urlData.publicUrl, // Public URL for display
+              description: workNotes || 'Job photo',
+              photo_type: selectedPhotoType,
+              created_by: user?.id,
+              storage_path: filePath, // Storage path for internal reference
+            }
+          ]);
+
+        if (dbError) throw dbError;
+
+        toast({
+          title: "Success",
+          description: "Photo uploaded successfully"
+        });
+
+        fetchJobPhotos();
+      } else {
+        // Offline: queue the action with placeholder path
+        await queueAction('PHOTO', {
+          jobId: job.id,
+          file: file,
+          fileName: fileName,
+          path: `/offline-photos/${fileName}`, // Placeholder path for offline display
+          createdAt: new Date().toISOString()
+        });
+
+        toast({
+          title: "Queued",
+          description: "Photo will be uploaded when online"
+        });
+      }
+
       setWorkNotes('');
     } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to upload photo",
+        description: online ? "Failed to upload photo" : "Failed to queue photo upload",
         variant: "destructive"
       });
     } finally {
@@ -237,10 +289,52 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
     }
   };
 
+  const handleAddNote = async (noteText: string) => {
+    if (!noteText.trim()) return;
+
+    try {
+      if (online) {
+        // Online: save directly to database
+        const { error } = await supabase
+          .from('job_notes')
+          .insert({
+            job_id: job.id,
+            text: noteText.trim(),
+            created_at: new Date().toISOString()
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Note added successfully"
+        });
+      } else {
+        // Offline: queue the action
+        await queueAction('NOTE', {
+          jobId: job.id,
+          text: noteText.trim(),
+          createdAt: new Date().toISOString()
+        });
+
+        toast({
+          title: "Queued",
+          description: "Note will be saved when online"
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: online ? "Failed to add note" : "Failed to queue note",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleGenerateReport = async () => {
     try {
       // Calculate duration if job is completed
-      const actualDuration = job.started_at && job.completed_at 
+      const actualDuration = job.started_at && job.completed_at
         ? calculateDuration(job.started_at, job.completed_at)
         : null;
 
@@ -269,7 +363,7 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
 
       const { generateMinimalistJobReport } = await import('../utils/modernPdfGenerator');
       await generateMinimalistJobReport(reportData);
-      
+
       toast({
         title: "Success",
         description: "Job report generated and downloaded successfully"
@@ -439,12 +533,13 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
         </TabsList>
         
         <TabsContent value="workflow" className="mt-4">
-          <JobWorkflowStepper
-            currentStatus={job.status}
-            onStatusChange={handleStatusChange}
-            loading={loading}
-          />
-        </TabsContent>
+           <JobWorkflowStepper
+             currentStatus={job.status}
+             onStatusChange={handleStatusChange}
+             loading={loading}
+             online={online}
+           />
+         </TabsContent>
         
         <TabsContent value="documentation" className="mt-4">
           <JobDocumentationPanel

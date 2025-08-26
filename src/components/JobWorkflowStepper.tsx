@@ -13,9 +13,10 @@ interface JobWorkflowStepperProps {
   currentStatus: string;
   onStatusChange: (status: string) => void;
   loading: boolean;
+  online?: boolean;
 }
 
-const JobWorkflowStepper = ({ currentStatus, onStatusChange, loading }: JobWorkflowStepperProps) => {
+const JobWorkflowStepper = ({ currentStatus, onStatusChange, loading, online = true }: JobWorkflowStepperProps) => {
   const getWorkflowSteps = (): WorkflowStep[] => {
     const steps: WorkflowStep[] = [
       {
@@ -80,10 +81,12 @@ const JobWorkflowStepper = ({ currentStatus, onStatusChange, loading }: JobWorkf
             <div className="flex flex-col items-center text-center">
               <button
                 onClick={() => canAdvanceToStep(step.id) && onStatusChange(step.id)}
-                disabled={!canAdvanceToStep(step.id) || loading}
-                className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center ${getStepColor(step)} 
-                  ${canAdvanceToStep(step.id) && !loading ? 'hover:scale-105 cursor-pointer' : ''} 
+                disabled={!canAdvanceToStep(step.id) || loading || !online}
+                className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center ${getStepColor(step)}
+                  ${canAdvanceToStep(step.id) && !loading && online ? 'hover:scale-105 cursor-pointer' : ''}
+                  ${!online ? 'opacity-50' : ''}
                   transition-all duration-200`}
+                title={!online ? 'Offline - changes will sync when online' : ''}
               >
                 {getStepIcon(step)}
               </button>

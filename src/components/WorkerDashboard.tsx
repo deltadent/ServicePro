@@ -4,8 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  Calendar, 
+import {
+  Calendar,
   Clock,
   Navigation,
   FileText,
@@ -14,7 +14,10 @@ import {
   Phone,
   User,
   MoreVertical,
-  Play
+  Play,
+  Wifi,
+  WifiOff,
+  RefreshCw
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -26,6 +29,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from "@/hooks/use-toast";
 import { useDevice } from '@/hooks/use-device';
+import { useNetwork } from '@/hooks/useNetwork';
+import { fetchJobsList, updateJobCache } from '@/lib/jobsRepo';
+import { runSync } from '@/lib/sync';
+import { getPendingCountByJob } from '@/lib/queue';
+import { OFFLINE_MESSAGES } from '@/lib/constants';
 import JobDetailsDialog from './JobDetailsDialog';
 import JobHistory from './JobHistory';
 import WorkerDashboardTablet from './WorkerDashboardTablet';
@@ -84,6 +92,7 @@ const WorkerDashboard = () => {
   const { user } = useAuth();
   const { isTablet } = useDevice();
   const { toast } = useToast();
+  const online = useNetwork();
 
   const [stats, setStats] = useState({
     todayJobs: 0,
@@ -100,6 +109,8 @@ const WorkerDashboard = () => {
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [showJobDetails, setShowJobDetails] = useState(false);
   const [activeTab, setActiveTab] = useState<'current' | 'history'>('current');
+  const [syncing, setSyncing] = useState(false);
+  const [pendingSyncCounts, setPendingSyncCounts] = useState<Record<string, number>>({});
 
   // --- Search / filter / sort ---
   const [rawSearch, setRawSearch] = useState('');
@@ -120,6 +131,23 @@ const WorkerDashboard = () => {
   useEffect(() => {
     if (user) fetchWorkerData();
   }, [user]);
+
+  // Auto-sync when coming back online
+  useEffect(() => {
+    let wasOffline = false;
+
+    if (!online) {
+      wasOffline = true;
+    } else if (wasOffline) {
+      // Just came back online, trigger sync
+      handleSync();
+    }
+  }, [online]);
+
+  // Update pending sync counts when jobs change
+  useEffect(() => {
+    updatePendingSyncCounts();
+  }, [myJobs]);
 
   // Realtime updates for this technician
   useEffect(() => {
@@ -145,61 +173,55 @@ const WorkerDashboard = () => {
   }, [user]);
 
   const fetchWorkerData = async () => {
+    if (!user?.id) return;
+
     try {
       setLoading(true);
-      const { data: jobs, error: jobsError } = await supabase
-        .from('jobs')
-        .select(`
-          *,
-          customers(name, phone, address, short_address, city, state, email)
-        `)
-        .eq('technician_id', user?.id)
-        .order('scheduled_date', { ascending: true });
 
-      if (jobsError) throw jobsError;
+      // Use offline-first jobs repository
+      const result = await fetchJobsList({ technicianId: user.id });
 
+      // Cache was hit if fromCache is true
+      if (result.fromCache) {
+        console.log('Loaded jobs from cache');
+      }
+
+      const jobs = result.jobs;
       const today = new Date();
       const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
       const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).toISOString();
 
-      const { data: todayJobsData, error: todayJobsError } = await supabase
-        .from('jobs')
-        .select('id')
-        .eq('technician_id', user?.id)
-        .gte('scheduled_date', todayStart)
-        .lt('scheduled_date', todayEnd);
-
-      if (todayJobsError) throw todayJobsError;
-
-      const todayJobs = todayJobsData?.length || 0;
+      const todayJobs = jobs.filter(job =>
+        job.scheduled_date >= todayStart && job.scheduled_date < todayEnd
+      ).length;
 
       const weekAgo = new Date(today);
       weekAgo.setDate(weekAgo.getDate() - 7);
 
-      const completedJobs = jobs?.filter(j => j.status === 'completed').length || 0;
-      const pendingJobs = jobs?.filter(j => j.status === 'scheduled' || j.status === 'in_progress').length || 0;
+      const completedJobs = jobs.filter(j => j.status === 'completed').length;
+      const pendingJobs = jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress').length;
 
-      const weeklyCompletedJobs = jobs?.filter(job => {
+      const weeklyCompletedJobs = jobs.filter(job => {
         const completedDate = new Date(job.completed_at || job.created_at);
         return job.status === 'completed' && completedDate >= weekAgo;
-      }).length || 0;
+      }).length;
 
       const currentMonth = new Date().getMonth();
       const currentYear = new Date().getFullYear();
-      const monthlyCompletedJobs = jobs?.filter(job => {
+      const monthlyCompletedJobs = jobs.filter(job => {
         const jobDate = new Date(job.completed_at || job.created_at);
-        return job.status === 'completed' && 
-               jobDate.getMonth() === currentMonth && 
+        return job.status === 'completed' &&
+               jobDate.getMonth() === currentMonth &&
                jobDate.getFullYear() === currentYear;
-      }) || [];
+      });
 
       const monthlyRating = 0;
 
-      const completedJobsWithDuration = jobs?.filter(job => 
+      const completedJobsWithDuration = jobs.filter(job =>
         job.status === 'completed' && job.started_at && job.completed_at
-      ) || [];
+      );
 
-      const avgCompletionTime = completedJobsWithDuration.length > 0 
+      const avgCompletionTime = completedJobsWithDuration.length > 0
         ? completedJobsWithDuration.reduce((sum, job) => {
             const start = new Date(job.started_at);
             const end = new Date(job.completed_at);
@@ -207,8 +229,8 @@ const WorkerDashboard = () => {
           }, 0) / completedJobsWithDuration.length
         : 0;
 
-      const totalRevenue = jobs?.filter(job => job.status === 'completed')
-        .reduce((sum, job) => sum + (job.total_cost || 0), 0) || 0;
+      const totalRevenue = jobs.filter(job => job.status === 'completed')
+        .reduce((sum, job) => sum + (job.total_cost || 0), 0);
 
       setStats({
         todayJobs,
@@ -220,11 +242,15 @@ const WorkerDashboard = () => {
         totalRevenue
       });
 
-      setMyJobs(jobs?.filter(job => job.status === 'scheduled' || job.status === 'in_progress') || []);
+      setMyJobs(jobs.filter(job => job.status === 'scheduled' || job.status === 'in_progress'));
 
     } catch (error: any) {
       console.error('Error fetching worker data:', error);
-      toast({ title: "Error", description: "Failed to load dashboard data", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: online ? "Failed to load dashboard data" : "You're offline - showing cached data",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -265,6 +291,53 @@ const WorkerDashboard = () => {
 
   const callCustomer = (phone: string) => {
     window.open(`tel:${phone}`, '_self');
+  };
+
+  // Handle manual sync
+  const handleSync = async () => {
+    if (syncing) return;
+
+    setSyncing(true);
+    try {
+      const result = await runSync();
+      if (result.success) {
+        toast({
+          title: "Sync Complete",
+          description: `Synced ${result.processedCount} items successfully`,
+        });
+        // Refresh jobs data
+        await fetchWorkerData();
+        // Update pending counts
+        await updatePendingSyncCounts();
+      } else {
+        toast({
+          title: "Sync Failed",
+          description: result.errors.join(', '),
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Sync Error",
+        description: "Failed to sync data",
+        variant: "destructive"
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  // Update pending sync counts for all jobs
+  const updatePendingSyncCounts = async () => {
+    const counts: Record<string, number> = {};
+    for (const job of myJobs) {
+      try {
+        counts[job.id] = await getPendingCountByJob(job.id);
+      } catch (error) {
+        counts[job.id] = 0;
+      }
+    }
+    setPendingSyncCounts(counts);
   };
 
   // Filtering + Sorting
@@ -362,6 +435,16 @@ const WorkerDashboard = () => {
 
   return (
     <div className="h-screen bg-muted/30 flex flex-col">
+      {/* Offline Banner */}
+      {!online && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2">
+          <div className="flex items-center gap-2 text-amber-800">
+            <WifiOff className="w-4 h-4" />
+            <span className="text-sm font-medium">{OFFLINE_MESSAGES.OFFLINE_BANNER}</span>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border p-4 sm:p-6">
         <div className="flex items-center justify-between">
@@ -371,12 +454,36 @@ const WorkerDashboard = () => {
             </div>
             <div>
               <h1 className="text-lg font-semibold text-foreground">Dashboard</h1>
-              <p className="text-xs text-muted-foreground">Welcome back!</p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-muted-foreground">Welcome back!</p>
+                <div className="flex items-center gap-1">
+                  {online ? (
+                    <Wifi className="w-3 h-3 text-green-500" />
+                  ) : (
+                    <WifiOff className="w-3 h-3 text-amber-500" />
+                  )}
+                  <span className="text-xs text-muted-foreground">
+                    {online ? OFFLINE_MESSAGES.ONLINE_STATUS : OFFLINE_MESSAGES.OFFLINE_STATUS}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-          <Badge variant="secondary" className="text-xs">
-            {stats.pendingJobs} active
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSync}
+              disabled={syncing || !online}
+              className="h-8"
+            >
+              <RefreshCw className={`w-3 h-3 mr-1 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? OFFLINE_MESSAGES.SYNCING_BUTTON : OFFLINE_MESSAGES.SYNC_BUTTON}
+            </Button>
+            <Badge variant="secondary" className="text-xs">
+              {stats.pendingJobs} active
+            </Badge>
+          </div>
         </div>
 
         {/* Tabs (mobile visible when >= sm as in original) */}
@@ -486,9 +593,16 @@ const WorkerDashboard = () => {
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1">
                                     <div className={`w-2 h-2 rounded-full ${getPriorityColor(job.priority)}`}></div>
-                                    <Badge variant="secondary" className="text-xs px-2 py-0.5">
-                                      {job.job_number}
-                                    </Badge>
+                                    <div className="flex items-center gap-1">
+                                      <Badge variant="secondary" className="text-xs px-2 py-0.5">
+                                        {job.job_number}
+                                      </Badge>
+                                      {pendingSyncCounts[job.id] > 0 && (
+                                        <Badge variant="outline" className="text-xs px-2 py-0.5 bg-amber-50 text-amber-700 border-amber-200">
+                                          {OFFLINE_MESSAGES.PENDING_BADGE(pendingSyncCounts[job.id])}
+                                        </Badge>
+                                      )}
+                                    </div>
                                   </div>
                                   <h3 className="font-medium text-sm leading-tight truncate">{job.title}</h3>
                                   <p className="text-xs text-muted-foreground mt-1">{job.customers?.name}</p>
