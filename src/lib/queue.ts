@@ -22,6 +22,8 @@ export interface PhotoActionPayload {
   file: File;
   fileName: string;
   path?: string; // Public URL for display
+  photo_type?: 'before' | 'during' | 'after'; // Photo categorization
+  description?: string; // Photo description
   createdAt: string;
 }
 

@@ -117,7 +117,7 @@ const JobHistory = () => {
         rawPhotos.map(async (p: any) => {
           if (p?.storage_path) {
             const { data: signed } = await supabase.storage
-              .from('job_photos')
+              .from('job-photos')
               .createSignedUrl(p.storage_path, 60 * 60);
             return { ...p, photo_url: signed?.signedUrl || p.photo_url };
           }

@@ -61,6 +61,43 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
     }
   }, [job]);
 
+  // Listen for sync events to refresh data
+  useEffect(() => {
+    const handlePhotoSynced = (event: CustomEvent) => {
+      const { jobId } = event.detail;
+      if (jobId === job?.id) {
+        console.log('Photo synced for current job, refreshing photos...');
+        fetchJobPhotos();
+      }
+    };
+
+    const handleNoteSynced = (event: CustomEvent) => {
+      const { jobId } = event.detail;
+      if (jobId === job?.id) {
+        console.log('Note synced for current job, refreshing data...');
+        fetchJobPhotos(); // Refresh photos in case notes affect the display
+      }
+    };
+
+    const handleSyncCompleted = (event: CustomEvent) => {
+      const { result } = event.detail;
+      // Refresh all data after sync completion
+      console.log('Sync completed, refreshing all job data...');
+      fetchJobPhotos();
+      fetchJobParts();
+    };
+
+    window.addEventListener('photoSynced', handlePhotoSynced as EventListener);
+    window.addEventListener('noteSynced', handleNoteSynced as EventListener);
+    window.addEventListener('syncCompleted', handleSyncCompleted as EventListener);
+
+    return () => {
+      window.removeEventListener('photoSynced', handlePhotoSynced as EventListener);
+      window.removeEventListener('noteSynced', handleNoteSynced as EventListener);
+      window.removeEventListener('syncCompleted', handleSyncCompleted as EventListener);
+    };
+  }, [job?.id]);
+
   const fetchJobPhotos = async () => {
     if (!job?.id) return;
     
@@ -77,7 +114,7 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
         (data || []).map(async (p: any) => {
           if (p?.storage_path) {
             const { data: signed } = await supabase.storage
-              .from('job_photos')
+              .from('job-photos')
               .createSignedUrl(p.storage_path, 60 * 60);
             return { ...p, photo_url: signed?.signedUrl || p.photo_url };
           }
@@ -226,19 +263,23 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
         const filePath = `${fileName}`;
 
         const { error: uploadError } = await supabase.storage
-          .from('job_photos')
+          .from('job-photos')
           .upload(filePath, file, { upsert: false });
 
         if (uploadError) throw uploadError;
 
         // Get public URL for the uploaded file
         const { data: urlData } = supabase.storage
-          .from('job_photos')
+          .from('job-photos')
           .getPublicUrl(filePath);
 
         if (!urlData.publicUrl) {
           throw new Error('Failed to get public URL for uploaded photo');
         }
+
+        // Ensure photo_type is valid
+        const validPhotoTypes = ['before', 'during', 'after'];
+        const photoType = validPhotoTypes.includes(selectedPhotoType) ? selectedPhotoType : 'during';
 
         const { error: dbError } = await supabase
           .from('job_photos')
@@ -247,7 +288,7 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
               job_id: job.id,
               path: urlData.publicUrl, // Public URL for display
               description: workNotes || 'Job photo',
-              photo_type: selectedPhotoType,
+              photo_type: photoType, // Ensure valid photo_type
               created_by: user?.id,
               storage_path: filePath, // Storage path for internal reference
             }
@@ -262,12 +303,18 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
 
         fetchJobPhotos();
       } else {
-        // Offline: queue the action with placeholder path
+        // Offline: queue the action with all necessary data
+        // Ensure photo_type is valid
+        const validPhotoTypes = ['before', 'during', 'after'];
+        const photoType = validPhotoTypes.includes(selectedPhotoType) ? selectedPhotoType : 'during';
+
         await queueAction('PHOTO', {
           jobId: job.id,
           file: file,
           fileName: fileName,
           path: `/offline-photos/${fileName}`, // Placeholder path for offline display
+          photo_type: photoType, // Include validated photo type for proper categorization
+          description: workNotes || 'Job photo', // Include description
           createdAt: new Date().toISOString()
         });
 

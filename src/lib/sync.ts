@@ -56,6 +56,12 @@ export async function runSync(): Promise<SyncResult> {
     }
 
     console.log(`Sync completed: ${result.processedCount} processed, ${result.failedCount} failed`);
+
+    // Dispatch general sync completion event
+    window.dispatchEvent(new CustomEvent('syncCompleted', {
+      detail: { result }
+    }));
+
     return result;
 
   } catch (error) {
@@ -143,11 +149,19 @@ async function processPhotoAction(action: QueueItem): Promise<void> {
   }
 
   // Save photo reference to database
+  const validPhotoTypes = ['before', 'during', 'after'];
+  const photoType = payload.photo_type && validPhotoTypes.includes(payload.photo_type)
+    ? payload.photo_type
+    : 'during'; // Default to 'during' if invalid or missing
+
   const { data, error } = await supabase
     .from('job_photos')
     .insert({
       job_id: payload.jobId,
       path: urlData.publicUrl,
+      photo_type: photoType, // Ensure valid photo_type
+      description: payload.description || 'Job photo', // Use queued description
+      storage_path: filePath, // Save storage path for signed URL generation
       created_at: payload.createdAt || new Date().toISOString()
     })
     .select()
@@ -230,8 +244,10 @@ async function processCheckAction(action: QueueItem): Promise<void> {
  */
 async function updateJobCacheWithNote(jobId: string, note: any): Promise<void> {
   try {
-    // This would update the job detail cache with the new note
-    // Implementation depends on how job details are cached
+    // Dispatch custom event to refresh notes in UI
+    window.dispatchEvent(new CustomEvent('noteSynced', {
+      detail: { jobId, note }
+    }));
     console.log(`Note added to job ${jobId}:`, note);
   } catch (error) {
     console.warn('Failed to update cache with note:', error);
@@ -245,8 +261,10 @@ async function updateJobCacheWithNote(jobId: string, note: any): Promise<void> {
  */
 async function updateJobCacheWithPhoto(jobId: string, photo: any): Promise<void> {
   try {
-    // This would update the job detail cache with the new photo
-    // Implementation depends on how job details are cached
+    // Dispatch custom event to refresh photos in UI
+    window.dispatchEvent(new CustomEvent('photoSynced', {
+      detail: { jobId, photo }
+    }));
     console.log(`Photo added to job ${jobId}:`, photo);
   } catch (error) {
     console.warn('Failed to update cache with photo:', error);
