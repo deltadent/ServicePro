@@ -49,6 +49,33 @@ export interface QueueItem {
   jobId?: string;
 }
 
+export interface Customer {
+  id: string;
+  name: string;
+  customer_type: "residential" | "commercial";
+  phone?: string | null; // Made optional since it might not exist in all database schemas
+  email: string | null;
+  address: string | null;
+  short_address: string | null;
+  city: string | null;
+  state: string | null;
+  zip_code: string | null;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+  // New fields for person/company support
+  first_name?: string | null;
+  last_name?: string | null;
+  company_name?: string | null;
+  phone_mobile?: string | null;
+  phone_work?: string | null;
+  preferred_contact?: 'mobile' | 'work' | 'email' | 'whatsapp' | null;
+  email_enabled: boolean;
+  whatsapp_enabled: boolean;
+  tags?: string[] | null;
+  country?: string | null;
+}
+
 export interface MetaData {
   key: string;
   value: any;
@@ -58,12 +85,13 @@ export interface MetaData {
 export type ServiceProDB = IDBPDatabase<{
   jobs: Job;
   jobDetails: JobDetail;
+  customers: Customer;
   queues: QueueItem;
   meta: MetaData;
 }>;
 
 const DB_NAME = 'servicepro-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 /**
  * Opens and returns the ServicePro IndexedDB database
@@ -74,6 +102,7 @@ export async function openServiceProDB(): Promise<ServiceProDB> {
     const db = await openDB<{
       jobs: Job;
       jobDetails: JobDetail;
+      customers: Customer;
       queues: QueueItem;
       meta: MetaData;
     }>(DB_NAME, DB_VERSION, {
@@ -93,6 +122,52 @@ export async function openServiceProDB(): Promise<ServiceProDB> {
           const jobDetailsStore = db.createObjectStore('jobDetails', { keyPath: 'id' });
           jobDetailsStore.createIndex('technician_id', 'technician_id');
           jobDetailsStore.createIndex('status', 'status');
+        }
+
+        // Create customers store
+        if (!db.objectStoreNames.contains('customers')) {
+          const customersStore = db.createObjectStore('customers', { keyPath: 'id' });
+          customersStore.createIndex('name', 'name');
+          customersStore.createIndex('customer_type', 'customer_type');
+          customersStore.createIndex('is_active', 'is_active');
+          customersStore.createIndex('email', 'email');
+          customersStore.createIndex('phone', 'phone');
+          // Add new indexes for version 2
+          customersStore.createIndex('first_name', 'first_name');
+          customersStore.createIndex('last_name', 'last_name');
+          customersStore.createIndex('company_name', 'company_name');
+          customersStore.createIndex('phone_mobile', 'phone_mobile');
+          customersStore.createIndex('phone_work', 'phone_work');
+          customersStore.createIndex('email_enabled', 'email_enabled');
+          customersStore.createIndex('whatsapp_enabled', 'whatsapp_enabled');
+        } else if (oldVersion < 2) {
+          // Migration from version 1 to 2: add new customer fields
+          const customersStore = db.objectStoreNames.contains('customers')
+            ? db.transaction('customers', 'readwrite').objectStore('customers')
+            : db.createObjectStore('customers', { keyPath: 'id' });
+
+          // Add new indexes for version 2
+          if (!customersStore.indexNames.contains('first_name')) {
+            customersStore.createIndex('first_name', 'first_name');
+          }
+          if (!customersStore.indexNames.contains('last_name')) {
+            customersStore.createIndex('last_name', 'last_name');
+          }
+          if (!customersStore.indexNames.contains('company_name')) {
+            customersStore.createIndex('company_name', 'company_name');
+          }
+          if (!customersStore.indexNames.contains('phone_mobile')) {
+            customersStore.createIndex('phone_mobile', 'phone_mobile');
+          }
+          if (!customersStore.indexNames.contains('phone_work')) {
+            customersStore.createIndex('phone_work', 'phone_work');
+          }
+          if (!customersStore.indexNames.contains('email_enabled')) {
+            customersStore.createIndex('email_enabled', 'email_enabled');
+          }
+          if (!customersStore.indexNames.contains('whatsapp_enabled')) {
+            customersStore.createIndex('whatsapp_enabled', 'whatsapp_enabled');
+          }
         }
 
         // Create queues store

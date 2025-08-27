@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Customer } from "./CustomerColumns";
 import CustomerProfile from "./CustomerProfile";
 import JobOrders from "./JobOrders";
+import { getCustomerDisplayName } from "@/lib/communication";
 
 interface CustomerDetailsProps {
   customer: Customer;
@@ -33,7 +34,7 @@ const CustomerDetails = ({ customer, onBack, formData, setFormData, handleSubmit
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>{customer.name}</BreadcrumbPage>
+              <BreadcrumbPage>{getCustomerDisplayName(customer)}</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
