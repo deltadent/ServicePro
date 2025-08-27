@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => ({
         name: 'ServicePro',
         short_name: 'ServicePro',
         description: 'Field service management for technicians',
-        theme_color: '#000000',
+        theme_color: '#3b82f6',
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',

@@ -4,7 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./styles/calendar.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { AnimatePresence } from "framer-motion";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import AuthPage from "@/components/AuthPage";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -12,6 +13,7 @@ import Layout from "@/components/Layout";
 import { CalendarDialogProvider } from "@/context/CalendarDialogContext";
 import NotFound from "@/pages/NotFound";
 import LandingPage from "@/pages/LandingPage";
+import { PageTransition } from "@/components/PageTransition";
 
 // Lazy load heavy components for better performance
 const AdminDashboard = React.lazy(() => import("@/components/AdminDashboard"));
@@ -233,21 +235,45 @@ const App = () => {
 
 const AppRoutes = () => {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-brand-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<AuthPage />} />
-      <Route path="/*" element={<ProtectedApp />} />
-    </Routes>
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route
+          path="/"
+          element={
+            <PageTransition>
+              <LandingPage />
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/login"
+          element={
+            <PageTransition>
+              <AuthPage />
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/*"
+          element={
+            <PageTransition>
+              <ProtectedApp />
+            </PageTransition>
+          }
+        />
+      </Routes>
+    </AnimatePresence>
   );
 };
 
