@@ -17,7 +17,11 @@ import {
   Play,
   Wifi,
   WifiOff,
-  RefreshCw
+  RefreshCw,
+  Wrench,
+  Target,
+  TrendingUp,
+  CheckCircle
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -42,13 +46,45 @@ import BottomNavBar from './BottomNavBar';
 // --- Helpers ---
 const getPriorityColor = (priority: string) => {
   switch (priority) {
-    case 'urgent': return 'bg-destructive';
-    case 'high': return 'bg-orange-500';
-    case 'medium': return 'bg-yellow-500';
-    case 'low': return 'bg-green-500';
-    default: return 'bg-muted-foreground';
+    case 'urgent': return 'bg-red-500 text-white';
+    case 'high': return 'bg-brand-gold-500 text-white';
+    case 'medium': return 'bg-brand-blue-500 text-white';
+    case 'low': return 'bg-brand-green-500 text-white';
+    default: return 'bg-gray-500 text-white';
   }
 };
+
+const getPriorityGlow = (priority: string) => {
+  switch (priority) {
+    case 'urgent': return 'shadow-glow';
+    case 'high': return 'shadow-glow-gold';
+    case 'medium': return 'shadow-glow';
+    case 'low': return 'shadow-soft';
+    default: return 'shadow-soft';
+  }
+};
+
+// Empty State Component
+const EmptyState = ({ icon: Icon, title, description, action }: {
+  icon: any;
+  title: string;
+  description: string;
+  action?: React.ReactNode;
+}) => (
+  <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+    <div className="relative mb-6">
+      <div className="w-24 h-24 bg-gradient-to-br from-brand-blue-100 to-brand-blue-200 rounded-2xl flex items-center justify-center animate-float">
+        <Icon className="w-12 h-12 text-brand-blue-600" />
+      </div>
+      <div className="absolute -top-2 -right-2 w-8 h-8 bg-brand-gold-400 rounded-full flex items-center justify-center">
+        <CheckCircle className="w-4 h-4 text-white" />
+      </div>
+    </div>
+    <h3 className="text-xl font-semibold text-foreground mb-2">{title}</h3>
+    <p className="text-muted-foreground mb-6 max-w-sm">{description}</p>
+    {action}
+  </div>
+);
 
 const getStatusBadgeStyle = (status: string) => {
   switch (status) {
@@ -435,11 +471,14 @@ const WorkerDashboard = () => {
 
   return (
     <div className="h-screen bg-muted/30 flex flex-col">
-      {/* Offline Banner */}
+      {/* Animated Offline Banner */}
       {!online && (
-        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2">
-          <div className="flex items-center gap-2 text-amber-800">
-            <WifiOff className="w-4 h-4" />
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-200/50 px-4 py-3 animate-slide-down shadow-soft">
+          <div className="flex items-center gap-3 text-amber-800">
+            <div className="relative">
+              <WifiOff className="w-5 h-5 animate-pulse" />
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-amber-400 rounded-full animate-ping"></div>
+            </div>
             <span className="text-sm font-medium">{OFFLINE_MESSAGES.OFFLINE_BANNER}</span>
           </div>
         </div>
