@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => ({
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
-        start_url: '/',
+        start_url: '/login',
         icons: [
           {
             src: 'pwa-192x192.png',
@@ -47,7 +47,7 @@ export default defineConfig(({ mode }) => ({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        globPatterns: ['**/*.{js,css,ico,png,svg}', '!**/index.html'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*/,
@@ -81,10 +81,34 @@ export default defineConfig(({ mode }) => ({
                 maxAgeSeconds: 7 * 24 * 60 * 60 // 7 days
               }
             }
+          },
+          {
+            // Cache admin dashboard routes with NetworkFirst for light offline support
+            urlPattern: /^\/admin\/.*/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'admin-routes-cache',
+              expiration: {
+                maxEntries: 20,
+                maxAgeSeconds: 24 * 60 * 60 // 24 hours
+              }
+            }
+          },
+          {
+            // Cache login page for PWA startup
+            urlPattern: /^\/login$/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'login-cache',
+              expiration: {
+                maxEntries: 1,
+                maxAgeSeconds: 24 * 60 * 60 // 24 hours
+              }
+            }
           }
         ],
-        navigateFallback: '/',
-        navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/]
+        navigateFallback: '/login',
+        navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/, /^\/$/]
       }
     }),
   ].filter(Boolean),

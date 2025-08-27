@@ -6,19 +6,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Wrench, AlertCircle } from "lucide-react";
+import { Wrench, AlertCircle, Download } from "lucide-react";
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from "@/hooks/use-toast";
+import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 
 const AuthPage = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  
-  const { signIn } = useAuth();
-  const { toast } = useToast();
-  const navigate = useNavigate();
+   const [email, setEmail] = useState('');
+   const [password, setPassword] = useState('');
+   const [loading, setLoading] = useState(false);
+   const [error, setError] = useState('');
+
+   const { signIn } = useAuth();
+   const { toast } = useToast();
+   const navigate = useNavigate();
+   const { showInstallButton, handleInstallClick } = useInstallPrompt();
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,6 +99,20 @@ const AuthPage = () => {
                 {loading ? 'Signing In...' : 'Sign In'}
               </Button>
             </form>
+
+            {showInstallButton && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleInstallClick}
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Install ServicePro App
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
