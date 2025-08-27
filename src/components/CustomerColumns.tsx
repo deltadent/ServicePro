@@ -30,6 +30,8 @@ export type Customer = {
   state: string | null
   zip_code: string | null
   is_active: boolean
+  created_at?: string // Added for date filtering
+  updated_at?: string
   // New fields for person/company support and communication settings
   first_name?: string | null
   last_name?: string | null
@@ -124,12 +126,18 @@ export const getColumns = (
     header: "Address",
     cell: ({ row }) => {
       const customer = row.original
-      return <span>{customer.short_address || customer.address}</span>
+      const displayAddress = customer.short_address || customer.address
+      const fullAddress = customer.address && customer.address !== customer.short_address ? customer.address : null
+
+      return (
+        <span
+          title={fullAddress || displayAddress}
+          className="cursor-help max-w-xs truncate block"
+        >
+          {displayAddress || 'No address'}
+        </span>
+      )
     },
-  },
-  {
-    accessorKey: "short_address",
-    header: "Short Saudi Address",
   },
   {
     id: "actions",

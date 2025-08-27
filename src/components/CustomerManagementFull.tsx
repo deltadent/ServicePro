@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Download, Upload, FileText, FileSpreadsheet } from "lucide-react";
+import { Plus, Download, Upload, FileText, FileSpreadsheet, TrendingUp, TrendingDown, Users, Calendar } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -29,7 +29,13 @@ const CustomerManagementFull = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [communicationFilter, setCommunicationFilter] = useState<'all' | 'whatsapp' | 'email'>('all');
+  const [viewMode, setViewMode] = useState<'all' | 'last30days' | 'yeartodate'>('all');
+  const [customerStats, setCustomerStats] = useState({
+    last30Days: { current: 0, previous: 0, percentage: 0 },
+    yearToDate: { current: 0, previous: 0, percentage: 0 }
+  });
   const [formData, setFormData] = useState({
+    id: '', // For detecting edit vs create mode
     name: '',
     email: '',
     phone: '',
@@ -66,7 +72,9 @@ const CustomerManagementFull = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setCustomers(data as Customer[] || []);
+      const customerData = data as Customer[] || [];
+      setCustomers(customerData);
+      calculateCustomerStats(customerData);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -76,6 +84,65 @@ const CustomerManagementFull = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const calculateCustomerStats = (customerList: Customer[]) => {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+
+    // Year-to-date calculations
+    const currentYear = now.getFullYear();
+    const lastYear = currentYear - 1;
+    const startOfYear = new Date(currentYear, 0, 1);
+    const startOfLastYear = new Date(lastYear, 0, 1);
+    const sameDayLastYear = new Date(lastYear, now.getMonth(), now.getDate());
+
+    // Last 30 days
+    const last30Days = customerList.filter(customer => {
+      const createdAt = new Date(customer.created_at || '');
+      return createdAt >= thirtyDaysAgo;
+    }).length;
+
+    // Previous 30 days (31-60 days ago)
+    const previous30Days = customerList.filter(customer => {
+      const createdAt = new Date(customer.created_at || '');
+      return createdAt >= sixtyDaysAgo && createdAt < thirtyDaysAgo;
+    }).length;
+
+    // Year to date
+    const yearToDate = customerList.filter(customer => {
+      const createdAt = new Date(customer.created_at || '');
+      return createdAt >= startOfYear;
+    }).length;
+
+    // Same period last year
+    const samePeriodLastYear = customerList.filter(customer => {
+      const createdAt = new Date(customer.created_at || '');
+      return createdAt >= startOfLastYear && createdAt <= sameDayLastYear;
+    }).length;
+
+    // Calculate percentages
+    const last30DaysPercentage = previous30Days > 0
+      ? ((last30Days - previous30Days) / previous30Days) * 100
+      : last30Days > 0 ? 100 : 0;
+
+    const yearToDatePercentage = samePeriodLastYear > 0
+      ? ((yearToDate - samePeriodLastYear) / samePeriodLastYear) * 100
+      : yearToDate > 0 ? 100 : 0;
+
+    setCustomerStats({
+      last30Days: {
+        current: last30Days,
+        previous: previous30Days,
+        percentage: Math.round(last30DaysPercentage * 100) / 100
+      },
+      yearToDate: {
+        current: yearToDate,
+        previous: samePeriodLastYear,
+        percentage: Math.round(yearToDatePercentage * 100) / 100
+      }
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -144,6 +211,7 @@ const CustomerManagementFull = () => {
   const handleEdit = (customer: Customer) => {
     setEditingCustomer(customer);
     setFormData({
+      id: customer.id, // ← Add the customer ID for editing detection
       name: customer.name,
       email: customer.email || '',
       phone: customer.phone || '',
@@ -226,6 +294,7 @@ const CustomerManagementFull = () => {
 
   const resetForm = () => {
     setFormData({
+      id: '', // Reset ID for create mode
       name: '',
       email: '',
       phone: '',
@@ -249,7 +318,30 @@ const CustomerManagementFull = () => {
     });
   };
 
-  const filteredCustomers = customers.filter(customer => {
+  const getFilteredCustomersByDate = (customerList: Customer[]) => {
+    const now = new Date();
+
+    switch (viewMode) {
+      case 'last30days': {
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        return customerList.filter(customer => {
+          const createdAt = new Date(customer.created_at || '');
+          return createdAt >= thirtyDaysAgo;
+        });
+      }
+      case 'yeartodate': {
+        const startOfYear = new Date(now.getFullYear(), 0, 1);
+        return customerList.filter(customer => {
+          const createdAt = new Date(customer.created_at || '');
+          return createdAt >= startOfYear;
+        });
+      }
+      default:
+        return customerList;
+    }
+  };
+
+  const filteredCustomers = getFilteredCustomersByDate(customers).filter(customer => {
     // Search term filter
     const matchesSearch = !searchTerm ||
       customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -372,7 +464,91 @@ const CustomerManagementFull = () => {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
+        <div className="space-y-6">
+          {/* Statistics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* All Customers Card */}
+            <Card
+              className={`cursor-pointer transition-all hover:shadow-md ${
+                viewMode === 'all' ? 'ring-2 ring-primary' : ''
+              }`}
+              onClick={() => setViewMode('all')}
+            >
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">All Customers</p>
+                    <p className="text-2xl font-bold">{customers.length}</p>
+                  </div>
+                  <Users className="h-8 w-8 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Last 30 Days Card */}
+            <Card
+              className={`cursor-pointer transition-all hover:shadow-md ${
+                viewMode === 'last30days' ? 'ring-2 ring-primary' : ''
+              }`}
+              onClick={() => setViewMode('last30days')}
+            >
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-muted-foreground">New (30 Days)</p>
+                    <p className="text-2xl font-bold">{customerStats.last30Days.current}</p>
+                    <div className="flex items-center gap-1 mt-1">
+                      {customerStats.last30Days.percentage >= 0 ? (
+                        <TrendingUp className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <TrendingDown className="h-4 w-4 text-red-500" />
+                      )}
+                      <span className={`text-sm font-medium ${
+                        customerStats.last30Days.percentage >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {customerStats.last30Days.percentage >= 0 ? '+' : ''}
+                        {customerStats.last30Days.percentage}%
+                      </span>
+                    </div>
+                  </div>
+                  <Calendar className="h-8 w-8 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Year to Date Card */}
+            <Card
+              className={`cursor-pointer transition-all hover:shadow-md ${
+                viewMode === 'yeartodate' ? 'ring-2 ring-primary' : ''
+              }`}
+              onClick={() => setViewMode('yeartodate')}
+            >
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-muted-foreground">Year to Date</p>
+                    <p className="text-2xl font-bold">{customerStats.yearToDate.current}</p>
+                    <div className="flex items-center gap-1 mt-1">
+                      {customerStats.yearToDate.percentage >= 0 ? (
+                        <TrendingUp className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <TrendingDown className="h-4 w-4 text-red-500" />
+                      )}
+                      <span className={`text-sm font-medium ${
+                        customerStats.yearToDate.percentage >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {customerStats.yearToDate.percentage >= 0 ? '+' : ''}
+                        {customerStats.yearToDate.percentage}%
+                      </span>
+                    </div>
+                  </div>
+                  <Calendar className="h-8 w-8 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Search and Filter Section */}
           <div className="flex items-center gap-4">
             <Input
               placeholder="Search customers..."
