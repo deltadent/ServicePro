@@ -193,8 +193,13 @@ function mapRowToCustomer(row: any, rowNumber: number): Partial<Customer> | null
   // Find and map fields
   Object.entries(fieldMappings).forEach(([field, possibleNames]) => {
     for (const name of possibleNames) {
-      if (row[name] !== undefined && row[name] !== null && row[name] !== '') {
+      if (row[name] !== undefined && row[name] !== null) {
         let value = row[name];
+
+        // Skip processing if value is empty string (let defaults handle it)
+        if (value === '') {
+          continue;
+        }
 
         // Type conversion
         if (field === 'customer_type') {
@@ -206,12 +211,20 @@ function mapRowToCustomer(row: any, rowNumber: number): Partial<Customer> | null
           }
         } else if (field === 'is_active' || field === 'email_enabled' || field === 'whatsapp_enabled') {
           if (typeof value === 'string') {
-            value = value.toLowerCase();
-            value = value === 'true' || value === 'yes' || value === 'active' || value === '1';
+            const stringValue = value.toLowerCase().trim();
+            // Handle empty/whitespace strings as undefined (will use default)
+            if (stringValue === '') {
+              value = undefined;
+            } else {
+              value = stringValue === 'true' || stringValue === 'yes' || stringValue === 'active' || stringValue === '1' || stringValue === 'on' || stringValue === 'enabled';
+            }
           } else if (typeof value === 'number') {
             value = value === 1;
           }
-          value = Boolean(value);
+          // Only convert to boolean if value is not undefined
+          if (value !== undefined) {
+            value = Boolean(value);
+          }
         } else if (field === 'phone_mobile' || field === 'phone_work') {
           // Normalize phone numbers to E.164 format
           if (value && typeof value === 'string') {
@@ -235,7 +248,10 @@ function mapRowToCustomer(row: any, rowNumber: number): Partial<Customer> | null
           }
         }
 
-        (customer as any)[field] = value;
+        // Only assign the value if it's not undefined (prevents setting empty strings)
+        if (value !== undefined) {
+          (customer as any)[field] = value;
+        }
         break;
       }
     }
@@ -297,7 +313,7 @@ export function validateCustomerData(customers: Partial<Customer>[]): {
         city: customer.city || null,
         state: customer.state || null,
         zip_code: customer.zip_code || null,
-        is_active: customer.is_active !== undefined ? customer.is_active : true,
+        is_active: customer.is_active ?? true,
         // New fields with defaults
         first_name: customer.first_name || null,
         last_name: customer.last_name || null,
@@ -305,8 +321,8 @@ export function validateCustomerData(customers: Partial<Customer>[]): {
         phone_mobile: customer.phone_mobile || null,
         phone_work: customer.phone_work || null,
         preferred_contact: customer.preferred_contact || null,
-        email_enabled: customer.email_enabled !== undefined ? customer.email_enabled : true,
-        whatsapp_enabled: customer.whatsapp_enabled !== undefined ? customer.whatsapp_enabled : false,
+        email_enabled: customer.email_enabled ?? true,
+        whatsapp_enabled: customer.whatsapp_enabled ?? false,
         tags: customer.tags || null,
         country: customer.country || null
       };

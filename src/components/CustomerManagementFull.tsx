@@ -183,9 +183,11 @@ const CustomerManagementFull = () => {
           description: "Customer updated successfully"
         });
       } else {
+        // For new customer creation, exclude the id field to let database auto-generate UUID
+        const { id, ...createData } = submitData;
         const { error } = await supabase
           .from('customers')
-          .insert([submitData]);
+          .insert([createData]);
 
         if (error) throw error;
 
