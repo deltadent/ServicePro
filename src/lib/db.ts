@@ -84,16 +84,48 @@ export interface MetaData {
   updated_at: string;
 }
 
+export interface ChecklistTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  items: ChecklistItem[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChecklistItem {
+  id: string;
+  text: string;
+  required: boolean;
+  completed?: boolean;
+  completed_at?: string;
+}
+
+export interface JobChecklist {
+  id: string;
+  job_id: string;
+  template_id?: string;
+  template_name?: string;
+  items: ChecklistItem[];
+  completed_count: number;
+  total_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export type ServiceProDB = IDBPDatabase<{
   jobs: Job;
   jobDetails: JobDetail;
   customers: Customer;
+  jobChecklists: JobChecklist;
+  checklistTemplates: ChecklistTemplate;
   queues: QueueItem;
   meta: MetaData;
 }>;
 
 const DB_NAME = 'servicepro-db';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 /**
  * Opens and returns the ServicePro IndexedDB database
@@ -105,6 +137,8 @@ export async function openServiceProDB(): Promise<ServiceProDB> {
       jobs: Job;
       jobDetails: JobDetail;
       customers: Customer;
+      jobChecklists: JobChecklist;
+      checklistTemplates: ChecklistTemplate;
       queues: QueueItem;
       meta: MetaData;
     }>(DB_NAME, DB_VERSION, {
@@ -178,6 +212,20 @@ export async function openServiceProDB(): Promise<ServiceProDB> {
           queuesStore.createIndex('type', 'type');
           queuesStore.createIndex('timestamp', 'timestamp');
           queuesStore.createIndex('jobId', 'jobId');
+        }
+
+        // Create jobChecklists store
+        if (!db.objectStoreNames.contains('jobChecklists')) {
+          const jobChecklistsStore = db.createObjectStore('jobChecklists', { keyPath: 'id' });
+          jobChecklistsStore.createIndex('job_id', 'job_id');
+          jobChecklistsStore.createIndex('template_id', 'template_id');
+        }
+
+        // Create checklistTemplates store
+        if (!db.objectStoreNames.contains('checklistTemplates')) {
+          const checklistTemplatesStore = db.createObjectStore('checklistTemplates', { keyPath: 'id' });
+          checklistTemplatesStore.createIndex('is_active', 'is_active');
+          checklistTemplatesStore.createIndex('name', 'name');
         }
 
         // Create meta store

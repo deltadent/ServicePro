@@ -17,7 +17,9 @@ import { PageTransition } from "@/components/PageTransition";
 
 // Lazy load heavy components for better performance
 const AdminDashboard = React.lazy(() => import("@/components/AdminDashboard"));
+const AdminChecklists = React.lazy(() => import("@/pages/AdminChecklists"));
 const WorkerDashboard = React.lazy(() => import("@/components/WorkerDashboard"));
+const CustomerProfile = React.lazy(() => import("@/pages/CustomerProfile"));
 const JobManagement = React.lazy(() => import("@/components/JobManagement"));
 const TechnicianProfile = React.lazy(() => import("@/components/TechnicianProfile"));
 const InventoryPage = React.lazy(() => import("@/components/InventoryPage"));
@@ -107,6 +109,14 @@ const ProtectedApp = () => {
             }
           />
           <Route
+            path="/admin/checklists"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminChecklists />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin/inventory"
             element={
               <ProtectedRoute requiredRole="admin">
@@ -176,6 +186,14 @@ const ProtectedApp = () => {
           />
 
           {/* Common Routes */}
+          <Route
+            path="/customers/:id"
+            element={
+              <ProtectedRoute>
+                <CustomerProfile />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/settings"
             element={

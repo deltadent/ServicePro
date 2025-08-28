@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+const CustomerProfile = React.lazy(() => import("@/pages/CustomerProfile"));
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +19,9 @@ import {
   X,
   Workflow,
   Clock,
-  Wrench
+  Wrench,
+  ExternalLink,
+  Shield
 } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -28,6 +32,8 @@ import { queueAction } from '@/lib/queue';
 import JobWorkflowStepper from './JobWorkflowStepper';
 import JobDocumentationPanel from './JobDocumentationPanel';
 import AddPartToJobDialog from './AddPartToJobDialog';
+import JobChecklist from './JobChecklist';
+import { fetchJobChecklist } from '@/lib/checklistsRepo';
 
 interface JobDetailsDialogProps {
   job: any;
@@ -41,7 +47,8 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
   const { toast } = useToast();
   const { isMobile } = useDevice();
   const online = useNetwork();
-  
+  const navigate = useNavigate();
+
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -51,6 +58,7 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
   const [workNotes, setWorkNotes] = useState('');
   const [customerFeedback, setCustomerFeedback] = useState(job?.work_summary || '');
   const [selectedPhotoType, setSelectedPhotoType] = useState<'before' | 'during' | 'after'>('during');
+  const [showCustomerProfile, setShowCustomerProfile] = useState(false);
 
   useEffect(() => {
     if (job) {
@@ -193,6 +201,33 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
   };
 
   const handleStatusChange = async (newStatus: string) => {
+    // Check for required checklist items before allowing completion
+    if (newStatus === 'completed' && job.status === 'in_progress') {
+      try {
+        const { checklist } = await fetchJobChecklist(job.id);
+
+        if (checklist) {
+          const requiredItems = checklist.items.filter(item => item.required);
+          const completedRequiredItems = requiredItems.filter(item => item.completed);
+
+          if (requiredItems.length > 0 && completedRequiredItems.length < requiredItems.length) {
+            const uncompletedCount = requiredItems.length - completedRequiredItems.length;
+
+            toast({
+              title: "Cannot Complete Job",
+              description: `${uncompletedCount} required checklist item${uncompletedCount > 1 ? 's' : ''} must be completed first.`,
+              variant: "destructive"
+            });
+
+            return; // Prevent status change
+          }
+        }
+      } catch (error) {
+        console.error('Error checking checklist:', error);
+        // Continue with status change on error (don't block due to checklist check failure)
+      }
+    }
+
     setLoading(true);
     try {
       const updateData: any = { status: newStatus };
@@ -444,6 +479,18 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
     }
   };
 
+  const handleCustomerClick = () => {
+    if (job?.customers?.id) {
+      if (isMobile) {
+        // Mobile: navigate to full page
+        navigate(`/customers/${job.customers.id}?from=job`);
+      } else {
+        // Desktop: show in sheet/modal
+        setShowCustomerProfile(true);
+      }
+    }
+  };
+
   const content = (
     <div className="space-y-4 max-h-[80vh] overflow-y-auto">
       {/* Job Header */}
@@ -512,13 +559,31 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
       {/* Customer & Schedule Info */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="space-y-3">
-          <h4 className="font-medium text-gray-900">Customer Information</h4>
+          <div className="flex items-center justify-between">
+            <h4 className="font-medium text-gray-900">Customer Information</h4>
+            {job.customers?.id && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCustomerClick}
+                className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-1 h-auto"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
           <div className="space-y-2 text-sm">
             <div className="flex items-center gap-2">
               <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
-              <span className="break-words">
-                {job.customers?.name} - {job.customers?.address}, {job.customers?.city}, {job.customers?.state}
-              </span>
+              <button
+                className="text-blue-600 hover:underline break-words text-left"
+                onClick={handleCustomerClick}
+              >
+                <span className="font-medium">{job.customers?.name}</span>
+                {job.customers?.address && (
+                  <span className="font-normal"> - {job.customers.address}, {job.customers.city}, {job.customers.state}</span>
+                )}
+              </button>
             </div>
             {job.customers?.phone_mobile || job.customers?.phone_work ? (() => {
               const preferredPhone = job.customers?.preferred_contact === 'mobile' ? job.customers.phone_mobile :
@@ -580,7 +645,7 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
 
       {/* Workflow and Documentation */}
       <Tabs defaultValue="workflow" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 h-12">
+        <TabsList className="grid w-full grid-cols-4 h-12">
           <TabsTrigger value="workflow" className="text-xs sm:text-sm h-full">
             <Workflow className="w-5 h-5 sm:mr-2" />
             <span className="hidden sm:inline">Workflow</span>
@@ -592,6 +657,10 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
           <TabsTrigger value="parts" className="text-xs sm:text-sm h-full">
             <Wrench className="w-5 h-5 sm:mr-2" />
             <span className="hidden sm:inline">Parts</span>
+          </TabsTrigger>
+          <TabsTrigger value="checklist" className="text-xs sm:text-sm h-full">
+            <Shield className="w-5 h-5 sm:mr-2" />
+            <span className="hidden sm:inline">Checklist</span>
           </TabsTrigger>
         </TabsList>
         
@@ -641,6 +710,10 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
             </div>
           </div>
         </TabsContent>
+
+        <TabsContent value="checklist" className="mt-4">
+          <JobChecklist jobId={job.id} onChecklistUpdate={onJobUpdate} />
+        </TabsContent>
       </Tabs>
     </div>
   );
@@ -669,17 +742,38 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden sm:max-w-2xl md:max-w-3xl lg:max-w-4xl">
-        <DialogHeader>
-          <DialogTitle>Job Details</DialogTitle>
-          <DialogDescription>
-            View and manage job information and documentation
-          </DialogDescription>
-        </DialogHeader>
-        {content}
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden sm:max-w-2xl md:max-w-3xl lg:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Job Details</DialogTitle>
+            <DialogDescription>
+              View and manage job information and documentation
+            </DialogDescription>
+          </DialogHeader>
+          {content}
+        </DialogContent>
+      </Dialog>
+
+      {/* Customer Profile Sheet for Desktop */}
+      <Sheet open={showCustomerProfile} onOpenChange={setShowCustomerProfile}>
+        <SheetContent className="w-full max-w-2xl">
+          <SheetHeader>
+            <SheetTitle>Customer Profile</SheetTitle>
+            <SheetDescription>
+              View customer information and job history
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-4">
+            <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div></div>}>
+              {job?.customers?.id && (
+                <CustomerProfile id={job.customers.id} />
+              )}
+            </Suspense>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 };
 

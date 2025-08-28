@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -126,9 +127,10 @@ const relativeTime = (when: Date) => {
 
 const WorkerDashboard = () => {
   const { user } = useAuth();
-  const { isTablet } = useDevice();
+  const { isTablet, isMobile } = useDevice();
   const { toast } = useToast();
   const online = useNetwork();
+  const navigate = useNavigate();
 
   const [stats, setStats] = useState({
     todayJobs: 0,
@@ -644,7 +646,17 @@ const WorkerDashboard = () => {
                                     </div>
                                   </div>
                                   <h3 className="font-medium text-sm leading-tight truncate">{job.title}</h3>
-                                  <p className="text-xs text-muted-foreground mt-1">{job.customers?.name}</p>
+                                  <p
+                                    className="text-xs text-blue-600 hover:text-blue-800 mt-1 cursor-pointer underline"
+                                    onClick={() => {
+                                      const customerId = job.customers?.id;
+                                      if (customerId) {
+                                        navigate(`/customers/${customerId}?from=job`);
+                                      }
+                                    }}
+                                  >
+                                    {job.customers?.name}
+                                  </p>
                                 </div>
                                 <Badge 
                                   variant="outline" 

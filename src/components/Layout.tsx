@@ -11,7 +11,8 @@ import {
   LogOut,
   Wrench,
   ClipboardList,
-  BarChart3
+  BarChart3,
+  Shield
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -23,11 +24,17 @@ const Layout = ({ children }: LayoutProps) => {
   const { profile, signOut, isAdmin } = useAuth();
   const navigate = useNavigate();
 
+  // Debug logging
+  console.log('Layout Debug - Profile:', profile);
+  console.log('Layout Debug - Is Admin:', isAdmin);
+  console.log('Layout Debug - Profile Role:', profile?.role);
+
   const adminMenuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
     { icon: Calendar, label: 'Job Management', path: '/admin/jobs' },
     { icon: Users, label: 'Technicians', path: '/admin/technicians' },
     { icon: Users, label: 'Customers', path: '/admin/customers' },
+    { icon: Shield, label: 'Checklists', path: '/admin/checklists' },
     { icon: Package, label: 'Inventory', path: '/admin/inventory' },
     { icon: DollarSign, label: 'Financial', path: '/admin/financial' },
     { icon: BarChart3, label: 'Reports', path: '/admin/reports' },
