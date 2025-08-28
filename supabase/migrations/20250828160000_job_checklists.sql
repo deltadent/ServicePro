@@ -28,6 +28,9 @@ create table if not exists job_checklists (
     updated_at timestamptz default now()
 );
 
+-- Create unique constraint for upsert operations (required for ON CONFLICT)
+alter table job_checklists add constraint unique_job_checklists_job_id unique(job_id);
+
 -- Create index for efficient job checklist lookups
 create index if not exists idx_job_checklists_job_id on job_checklists(job_id);
 create index if not exists idx_job_checklists_template_id on job_checklists(template_id);

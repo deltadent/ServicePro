@@ -251,14 +251,54 @@ const JobCreationDialog = ({ onJobCreated }: JobCreationDialogProps) => {
 
       // If a checklist template was selected, create a checklist from it
       if (checklist_template_id && createdJob) {
-        const { createChecklistFromTemplate } = await import('@/lib/checklistsRepo');
+        console.log('🗂️ Attempting to create checklist from template:', {
+          templateId: checklist_template_id,
+          jobId: createdJob.id
+        });
 
         try {
-          await createChecklistFromTemplate(createdJob.id, checklist_template_id);
-          console.log('Checklist created from template:', checklist_template_id);
+          const startTime = Date.now();
+          const { createChecklistFromTemplate } = await import('@/lib/checklistsRepo');
+
+          const newChecklist = await createChecklistFromTemplate(createdJob.id, checklist_template_id);
+          const checklistCreationTime = Date.now() - startTime;
+
+          console.log('✅ Checklist creation result:', {
+            success: !!newChecklist,
+            checklistTime: checklistCreationTime,
+            checklistData: newChecklist,
+            itemsCount: newChecklist?.items?.length || 0
+          });
+
+          if (newChecklist) {
+            toast({
+              title: "Success",
+              description: `Job created successfully with ${newChecklist.items?.length || 0} checklist items`
+            });
+          } else {
+            console.warn('⚠️ Checklist creation returned null - this might indicate an issue');
+            toast({
+              title: "Warning",
+              description: "Job created but checklist creation failed. Please add checklist manually.",
+              variant: "destructive"
+            });
+          }
         } catch (checklistError) {
-          console.error('Failed to create checklist from template:', checklistError);
-          // Don't fail the entire job creation if checklist creation fails
+          console.error('❌ Failed to create checklist from template:', {
+            error: checklistError,
+            templateId: checklist_template_id,
+            jobId: createdJob.id,
+            errorMessage: checklistError?.message,
+            errorDetails: checklistError?.details,
+            errorCode: checklistError?.statusCode
+          });
+
+          // Show specific error to user
+          toast({
+            title: "Checklist Creation Failed",
+            description: `Job created but rebate failed: ${checklistError?.message || 'Unknown error'}. You can add checklist manually later.`,
+            variant: "destructive"
+          });
         }
       }
 

@@ -50,11 +50,27 @@ const JobChecklist = ({ jobId, onChecklistUpdate }: JobChecklistProps) => {
   const loadChecklist = async () => {
     try {
       setLoading(true);
+      console.log('🔍 JobChecklist: Loading checklist for jobId:', jobId);
 
       // Fetch existing checklist
-      const { checklist: existingChecklist } = await fetchJobChecklist(jobId);
-      console.log('📋 Existing checklist:', existingChecklist);
+      const startTime = Date.now();
+      const { checklist: existingChecklist, fromCache } = await fetchJobChecklist(jobId);
+      const fetchTime = Date.now() - startTime;
+
+      console.log('📋 JobChecklist fetch result:', {
+        jobId,
+        success: !!existingChecklist,
+        fromCache,
+        fetchTime,
+        checklistData: existingChecklist,
+        itemsCount: existingChecklist?.items?.length || 0,
+        completedCount: existingChecklist?.completed_count || 0,
+        totalCount: existingChecklist?.total_count || 0
+      });
+
       setChecklist(existingChecklist);
+
+      console.log('📊 JobChecklist: React state updated with checklist:', !!existingChecklist);
 
       // If no checklist exists, also fetch templates
       if (!existingChecklist) {
@@ -137,27 +153,60 @@ const JobChecklist = ({ jobId, onChecklistUpdate }: JobChecklistProps) => {
   };
 
   const handleCreateFromTemplate = async (templateId: string) => {
+    console.log('🔧 JobChecklist: Creating checklist from template:', {
+      templateId,
+      jobId,
+      timestamp: new Date().toISOString()
+    });
+
     try {
+      const startTime = Date.now();
       const newChecklist = await createChecklistFromTemplate(jobId, templateId);
+      const creationTime = Date.now() - startTime;
+
+      console.log('✅ JobChecklist: Template creation result:', {
+        success: !!newChecklist,
+        creationTime,
+        checklistData: newChecklist,
+        checklistId: newChecklist?.id,
+        itemsCount: newChecklist?.items?.length || 0
+      });
 
       if (newChecklist) {
+        console.log('📊 JobChecklist: Setting React state and closing template picker');
         setChecklist(newChecklist);
         setShowTemplates(false);
 
         toast({
           title: "Checklist Created",
-          description: "Checklist has been created from template",
+          description: `Checklist created with ${newChecklist.items?.length || 0} items from template`,
         });
 
         if (onChecklistUpdate) {
+          console.log('🔄 JobChecklist: Triggering parent update callback');
           onChecklistUpdate();
         }
+      } else {
+        console.warn('⚠️ JobChecklist: createChecklistFromTemplate returned null');
+        toast({
+          title: "Warning",
+          description: "Checklist template processing failed - items may be invalid",
+          variant: "destructive"
+        });
       }
     } catch (error) {
-      console.error('Error creating checklist from template:', error);
+      console.error('❌ JobChecklist: Error creating checklist from template:', {
+        error,
+        templateId,
+        jobId,
+        errorMessage: error?.message,
+        errorDetails: error?.details,
+        errorCode: error?.statusCode
+      });
+
       toast({
         title: "Error",
-        description: "Failed to create checklist from template",
+        description: `Failed to create checklist: ${error?.message || 'Unknown error'}`,
         variant: "destructive"
       });
     }
