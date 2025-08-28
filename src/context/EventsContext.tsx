@@ -58,7 +58,7 @@ export const EventsProvider: React.FC<{ children: ReactNode }> = ({
         .from('jobs')
         .select(`
           id, title, description, scheduled_date, end_date, priority,
-          customers ( name, phone, address )
+          customers ( name, phone_mobile, phone_work, preferred_contact, address )
         `);
 
       if (error) throw error;
@@ -71,7 +71,9 @@ export const EventsProvider: React.FC<{ children: ReactNode }> = ({
         end: job.end_date ? new Date(job.end_date) : new Date(job.scheduled_date),
         backgroundColor: getPriorityColor(job.priority),
         customerName: job.customers?.name,
-        customerPhone: job.customers?.phone,
+        customerPhone: job.customers?.preferred_contact === 'mobile' ? job.customers?.phone_mobile :
+                       job.customers?.preferred_contact === 'work' ? job.customers?.phone_work :
+                       job.customers?.phone_mobile || job.customers?.phone_work,
         customerAddress: job.customers?.address,
       }));
       setEvents(formattedEvents);

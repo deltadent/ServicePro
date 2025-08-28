@@ -65,7 +65,7 @@ const JobManagement = () => {
         .from('jobs')
         .select(`
           *,
-          customers(name, phone, address, city, state),
+          customers(name, phone_mobile, phone_work, preferred_contact, address, city, state),
           profiles(full_name, email)
         `)
         .order('created_at', { ascending: false });

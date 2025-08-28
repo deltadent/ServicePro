@@ -315,7 +315,10 @@ const CustomerImportDialog: React.FC<CustomerImportDialogProps> = ({
                       <TableRow key={index}>
                         <TableCell>{customer.name || '-'}</TableCell>
                         <TableCell>{customer.email || '-'}</TableCell>
-                        <TableCell>{customer.phone || '-'}</TableCell>
+                        <TableCell>
+                          {customer.phone_mobile ? customer.phone_mobile :
+                           customer.phone_work || '-'}
+                        </TableCell>
                         <TableCell>{customer.customer_type || '-'}</TableCell>
                         <TableCell className="max-w-xs truncate">
                           {customer.address || '-'}

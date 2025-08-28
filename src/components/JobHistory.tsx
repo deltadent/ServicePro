@@ -52,7 +52,7 @@ const JobHistory = () => {
         .from('jobs')
         .select(`
           *,
-          customers(name, phone, address, city, state, email),
+          customers(name, phone_mobile, phone_work, preferred_contact, address, city, state, email),
           profiles(full_name)
         `)
         .order('created_at', { ascending: false });

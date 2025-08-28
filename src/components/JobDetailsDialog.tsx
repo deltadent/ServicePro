@@ -520,14 +520,30 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
                 {job.customers?.name} - {job.customers?.address}, {job.customers?.city}, {job.customers?.state}
               </span>
             </div>
-            {job.customers?.phone && (
-              <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-gray-400 shrink-0" />
-                <a href={`tel:${job.customers.phone}`} className="text-blue-600 hover:underline">
-                  {job.customers.phone}
-                </a>
-              </div>
-            )}
+            {job.customers?.phone_mobile || job.customers?.phone_work ? (() => {
+              const preferredPhone = job.customers?.preferred_contact === 'mobile' ? job.customers.phone_mobile :
+                                    job.customers?.preferred_contact === 'work' ? job.customers.phone_work :
+                                    job.customers.phone_mobile || job.customers.phone_work;
+              const phoneLabel = job.customers?.preferred_contact === 'mobile' ? 'Mobile' :
+                                job.customers?.preferred_contact === 'work' ? 'Work' : 'Phone';
+
+              return (
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-gray-400 shrink-0" />
+                  <span className="text-sm text-gray-600">{phoneLabel}:</span>
+                  <a href={`tel:${preferredPhone}`} className="text-blue-600 hover:underline">
+                    {preferredPhone}
+                  </a>
+                  {job.customers?.phone_mobile && job.customers?.phone_work &&
+                   job.customers.phone_mobile !== job.customers.phone_work && (
+                    <span className="text-xs text-gray-500">
+                      ({job.customers.preferred_contact === 'mobile' ? job.customers.phone_work :
+                        job.customers.phone_mobile})
+                    </span>
+                  )}
+                </div>
+              );
+            })() : null}
             {job.customers?.email && (
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-gray-400 shrink-0" />

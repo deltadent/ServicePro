@@ -708,12 +708,17 @@ const WorkerDashboard = () => {
                                       <FileText className="mr-2 h-4 w-4" />
                                       <span>View Details</span>
                                     </DropdownMenuItem>
-                                    {job.customers?.phone && (
-                                      <DropdownMenuItem onClick={() => callCustomer(job.customers.phone)}>
-                                        <Phone className="mr-2 h-4 w-4" />
-                                        <span>Call Customer</span>
-                                      </DropdownMenuItem>
-                                    )}
+                                    {(job.customers?.phone_mobile || job.customers?.phone_work) && (() => {
+                                      const phoneToCall = job.customers?.preferred_contact === 'mobile' ? job.customers.phone_mobile :
+                                                         job.customers?.preferred_contact === 'work' ? job.customers.phone_work :
+                                                         job.customers?.phone_mobile || job.customers?.phone_work;
+                                      return (
+                                        <DropdownMenuItem onClick={() => callCustomer(phoneToCall!)}>
+                                          <Phone className="mr-2 h-4 w-4" />
+                                          <span>Call Customer</span>
+                                        </DropdownMenuItem>
+                                      );
+                                    })()}
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               </div>

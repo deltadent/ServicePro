@@ -45,7 +45,7 @@ export async function fetchCustomersList(options: CustomersListOptions = {}): Pr
     }
 
     if (searchTerm) {
-      query = query.or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%,phone_mobile.ilike.%${searchTerm}%,first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,company_name.ilike.%${searchTerm}%`);
+      query = query.or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,phone_mobile.ilike.%${searchTerm}%,phone_work.ilike.%${searchTerm}%,first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,company_name.ilike.%${searchTerm}%`);
     }
 
     const { data: customers, error, count } = await query;
@@ -90,8 +90,8 @@ export async function fetchCustomersList(options: CustomersListOptions = {}): Pr
         filteredCustomers = filteredCustomers.filter(customer =>
           customer.name.toLowerCase().includes(term) ||
           (customer.email && customer.email.toLowerCase().includes(term)) ||
-          (customer.phone && customer.phone.includes(searchTerm)) ||
           (customer.phone_mobile && customer.phone_mobile.includes(searchTerm)) ||
+          (customer.phone_work && customer.phone_work.includes(searchTerm)) ||
           (customer.first_name && customer.first_name.toLowerCase().includes(term)) ||
           (customer.last_name && customer.last_name.toLowerCase().includes(term)) ||
           (customer.company_name && customer.company_name.toLowerCase().includes(term))
@@ -419,12 +419,12 @@ export async function previewCustomerImport(file: File) {
       if (customer.name) conditions.push(`name.eq.${customer.name}`);
       if (customer.email) conditions.push(`email.eq.${customer.email}`);
       if (customer.phone_mobile) conditions.push(`phone_mobile.eq.${customer.phone_mobile}`);
-      if (customer.phone) conditions.push(`phone.eq.${customer.phone}`);
+      if (customer.phone_work) conditions.push(`phone_work.eq.${customer.phone_work}`);
 
       if (conditions.length > 0) {
         const { data: existingCustomers, error: duplicateCheckError } = await supabase
           .from('customers')
-          .select('id, name, email, phone_mobile, phone')
+          .select('id, name, email, phone_mobile, phone_work')
           .or(conditions.join(','));
 
         if (duplicateCheckError) {
@@ -522,34 +522,17 @@ export async function importCustomersFromFile(file: File) {
 
     try {
       // Check for existing customer first to prevent duplicates
-      // Use multiple criteria to find potential duplicates
-      // Note: Handle case where 'phone' column might not exist
-      let selectFields = 'id, name';
-      if (customer.email) selectFields += ', email';
-      if (customer.phone_mobile) selectFields += ', phone_mobile';
-
-      // Try to include phone field, but handle if it doesn't exist
-      let duplicateQuery = supabase
-        .from('customers')
-        .select(selectFields);
-
+      const selectFields = 'id, name, email, phone_mobile, phone_work';
       const conditions = [];
+
       if (customer.name) conditions.push(`name.eq.${customer.name}`);
       if (customer.email) conditions.push(`email.eq.${customer.email}`);
       if (customer.phone_mobile) conditions.push(`phone_mobile.eq.${customer.phone_mobile}`);
-      // Only check phone if customer has phone data
-      if (customer.phone) {
-        try {
-          // Test if phone column exists by attempting to select it
-          await supabase.from('customers').select('phone').limit(1);
-          selectFields += ', phone';
-          duplicateQuery = supabase.from('customers').select(selectFields);
-          conditions.push(`phone.eq.${customer.phone}`);
-        } catch (error) {
-          // Phone column doesn't exist, skip it
-          console.log('📞 Phone column not found in database, skipping phone duplicate check');
-        }
-      }
+      if (customer.phone_work) conditions.push(`phone_work.eq.${customer.phone_work}`);
+
+      let duplicateQuery = supabase
+        .from('customers')
+        .select(selectFields);
 
       if (conditions.length > 0) {
         duplicateQuery = duplicateQuery.or(conditions.join(','));

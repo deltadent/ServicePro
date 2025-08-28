@@ -38,7 +38,6 @@ const CustomerManagementFull = () => {
     id: '', // For detecting edit vs create mode
     name: '',
     email: '',
-    phone: '',
     address: '',
     short_address: '',
     city: '',
@@ -216,7 +215,6 @@ const CustomerManagementFull = () => {
       id: customer.id, // ← Add the customer ID for editing detection
       name: customer.name,
       email: customer.email || '',
-      phone: customer.phone || '',
       address: customer.address || '',
       short_address: customer.short_address || '',
       city: customer.city || '',
@@ -299,7 +297,6 @@ const CustomerManagementFull = () => {
       id: '', // Reset ID for create mode
       name: '',
       email: '',
-      phone: '',
       address: '',
       short_address: '',
       city: '',
@@ -348,8 +345,8 @@ const CustomerManagementFull = () => {
     const matchesSearch = !searchTerm ||
       customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (customer.email && customer.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (customer.phone && customer.phone.includes(searchTerm)) ||
       (customer.phone_mobile && customer.phone_mobile.includes(searchTerm)) ||
+      (customer.phone_work && customer.phone_work.includes(searchTerm)) ||
       (customer.first_name && customer.first_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (customer.last_name && customer.last_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (customer.company_name && customer.company_name.toLowerCase().includes(searchTerm.toLowerCase())) ||

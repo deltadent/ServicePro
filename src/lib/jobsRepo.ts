@@ -33,7 +33,7 @@ export async function fetchJobsList(options: JobsListOptions = {}): Promise<Jobs
       .from('jobs')
       .select(`
         *,
-        customers(name, phone, address, short_address, city, state, email)
+        customers(name, phone_mobile, phone_work, preferred_contact, address, short_address, city, state, email)
       `, { count: 'exact' })
       .eq(technicianId ? 'technician_id' : '', technicianId || '')
       .eq(status ? 'status' : '', status || '')
@@ -110,7 +110,7 @@ export async function fetchJobDetail(jobId: string): Promise<{ job: JobDetail | 
       .from('jobs')
       .select(`
         *,
-        customers(name, phone, address, short_address, city, state, email)
+        customers(name, phone_mobile, phone_work, preferred_contact, address, short_address, city, state, email)
       `)
       .eq('id', jobId)
       .single();

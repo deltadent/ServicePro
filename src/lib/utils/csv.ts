@@ -292,7 +292,8 @@ export function validateCustomerData(customers: Partial<Customer>[]): {
     }
 
     // Phone validation (optional but if provided should be reasonable)
-    if (customer.phone && customer.phone.length < 5) {
+    if ((customer.phone_mobile && customer.phone_mobile.length < 5) ||
+        (customer.phone_work && customer.phone_work.length < 5)) {
       errors.push('Phone number seems too short');
     }
 
@@ -306,7 +307,6 @@ export function validateCustomerData(customers: Partial<Customer>[]): {
       const validCustomer: Omit<Customer, 'id'> = {
         name: customer.name!,
         customer_type: customer.customer_type || 'residential',
-        phone: customer.phone || null,
         email: customer.email || null,
         address: customer.address || null,
         short_address: customer.short_address || null,

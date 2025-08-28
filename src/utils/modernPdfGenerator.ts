@@ -19,7 +19,9 @@ export interface ReportData {
     work_summary?: string;
     customers?: {
       name: string;
-      phone: string;
+      phone_mobile?: string;
+      phone_work?: string;
+      preferred_contact?: 'mobile' | 'work' | 'email' | 'whatsapp';
       email: string;
       address: string;
       city: string;
@@ -328,9 +330,13 @@ export const generateMinimalistJobReport = async (reportData: ReportData) => {
   // Customer Information
   drawSection('Customer Information');
   if (job.customers) {
+    const customerPhone = job.customers?.preferred_contact === 'mobile' ? job.customers.phone_mobile :
+                        job.customers?.preferred_contact === 'work' ? job.customers.phone_work :
+                        job.customers?.phone_mobile || job.customers?.phone_work || 'N/A';
+
     const customerInfo: Array<[string, string]> = [
       ['Name', job.customers.name || 'N/A'],
-      ['Phone', job.customers.phone || 'N/A'],
+      ['Phone', customerPhone],
       ['Email', job.customers.email || 'N/A'],
       ['Address', `${job.customers.address || 'N/A'}, ${job.customers.city || ''}, ${job.customers.state || ''}`]
     ];

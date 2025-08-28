@@ -16,7 +16,9 @@ export interface Job {
   technician_id: string;
   customers?: {
     name: string;
-    phone?: string;
+    phone_mobile?: string;
+    phone_work?: string;
+    preferred_contact?: 'mobile' | 'work' | 'email' | 'whatsapp' | null;
     address?: string;
     short_address?: string;
   };

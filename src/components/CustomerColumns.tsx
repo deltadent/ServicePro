@@ -22,7 +22,6 @@ export type Customer = {
   id: string
   name: string
   customer_type: "residential" | "commercial"
-  phone?: string | null // Made optional since it might not exist in all database schemas
   email: string | null
   address: string | null
   short_address: string | null
