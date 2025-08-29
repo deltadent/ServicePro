@@ -5,18 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Phone, Mail, MessageSquare, Clock, Wrench, TrendingUp, Target, Plus, Calendar, User, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Phone, Mail, MessageSquare, Clock, Wrench, TrendingUp, Target, Plus, Calendar, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/hooks/use-toast";
-import { useDevice } from '@/hooks/use-device';
-import JobOrders from '@/components/JobOrders';
-import JobCreationDialog from '@/components/JobCreationDialog';
 import { Customer } from '@/components/CustomerColumns';
-import { JobCreationProvider } from '@/context/JobCreationContext';
-import { CalendarDialogProvider } from '@/context/CalendarDialogContext';
 
 interface CustomerProfileProps {
   id?: string;
@@ -27,7 +21,6 @@ const CustomerProfile = ({ id: propId }: CustomerProfileProps = {}) => {
   const customerId = propId || urlId;
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { isMobile } = useDevice();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('profile');
@@ -184,9 +177,9 @@ const CustomerProfile = ({ id: propId }: CustomerProfileProps = {}) => {
 
 
       {/* Jobs Section with Tabs */}
-      <Card>
-        <CardHeader>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Card>
+          <CardHeader>
             <div className="flex justify-between items-center">
               <TabsList>
                 <TabsTrigger value="profile">Profile Details</TabsTrigger>
@@ -238,10 +231,9 @@ const CustomerProfile = ({ id: propId }: CustomerProfileProps = {}) => {
                 )}
               </div>
             </div>
-          </Tabs>
-        </CardHeader>
-        <CardContent>
-          <TabsContent value="profile" className="space-y-6">
+          </CardHeader>
+          <CardContent>
+            <TabsContent value="profile" className="space-y-6">
             {/* Profile Details Content */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -422,6 +414,7 @@ const CustomerProfile = ({ id: propId }: CustomerProfileProps = {}) => {
           </TabsContent>
         </CardContent>
       </Card>
+      </Tabs>
     </div>
   );
 };

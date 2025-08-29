@@ -649,7 +649,8 @@ const WorkerDashboard = () => {
                                   <p
                                     className="text-xs text-blue-600 hover:text-blue-800 mt-1 cursor-pointer underline"
                                     onClick={() => {
-                                      const customerId = job.customers?.id;
+                                      // Use customer_id from job (more reliable)
+                                      const customerId = job.customer_id || job.customers?.id;
                                       if (customerId) {
                                         navigate(`/customers/${customerId}?from=job`);
                                       }
