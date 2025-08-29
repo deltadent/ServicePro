@@ -14,11 +14,14 @@ import {
   CheckCircle,
   AlertTriangle,
   BarChart3,
-  Target
+  Target,
+  MapPin,
+  Activity
 } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/hooks/useAuth';
+import { getTimeTrackingStats } from '@/lib/jobsRepo';
 
 const AdminDashboard = () => {
   const { toast } = useToast();
@@ -32,6 +35,12 @@ const AdminDashboard = () => {
     totalTechnicians: 0,
     monthlyRevenue: 0,
     avgCompletionTime: 0
+  });
+  const [timeStats, setTimeStats] = useState({
+    totalHoursWorked: 0,
+    locationComplianceRate: 0,
+    averageTimePerJob: 0,
+    totalJobsTracked: 0
   });
   const [recentJobs, setRecentJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,6 +77,9 @@ const AdminDashboard = () => {
         .eq('role', 'worker');
 
       if (techniciansError) throw techniciansError;
+
+      // Fetch time tracking statistics
+      const timeTrackingStats = await getTimeTrackingStats();
 
       // Calculate statistics
       const totalJobs = jobs?.length || 0;
@@ -108,6 +120,9 @@ const AdminDashboard = () => {
         monthlyRevenue,
         avgCompletionTime
       });
+
+      // Set time tracking statistics
+      setTimeStats(timeTrackingStats);
 
       // Set recent jobs
       setRecentJobs(jobs?.slice(0, 5) || []);
@@ -262,6 +277,66 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Time Tracking Overview */}
+      <Card className="rounded-2xl border-0 shadow-soft">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Activity className="w-5 h-5 text-brand-blue-600" />
+            Time Tracking Overview
+          </CardTitle>
+          <CardDescription>Technician productivity and location compliance metrics</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
+              <div className="p-3 bg-blue-100 rounded-xl">
+                <Clock className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-blue-900">{timeStats.totalHoursWorked.toFixed(1)}</div>
+                <div className="text-sm text-blue-700">Total Hours</div>
+                <div className="text-xs text-blue-600">This month</div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl">
+              <div className="p-3 bg-green-100 rounded-xl">
+                <MapPin className="w-6 h-6 text-green-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-green-900">{timeStats.locationComplianceRate}%</div>
+                <div className="text-sm text-green-700">GPS Compliance</div>
+                <div className="text-xs text-green-600">Location verified</div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl">
+              <div className="p-3 bg-purple-100 rounded-xl">
+                <TrendingUp className="w-6 h-6 text-purple-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-purple-900">
+                  {timeStats.averageTimePerJob.toFixed(1)}m
+                </div>
+                <div className="text-sm text-purple-700">Avg Time per Job</div>
+                <div className="text-xs text-purple-600">Across all tracked</div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl">
+              <div className="p-3 bg-orange-100 rounded-xl">
+                <Target className="w-6 h-6 text-orange-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-orange-900">{timeStats.totalJobsTracked}</div>
+                <div className="text-sm text-orange-700">Jobs Tracked</div>
+                <div className="text-xs text-orange-600">With time data</div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Job Progress Overview */}
       <Card className="rounded-2xl border-0 shadow-soft">

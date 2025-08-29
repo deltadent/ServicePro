@@ -42,7 +42,7 @@ import JobHistory from './JobHistory';
 import { TechnicianTimeTracker } from './TechnicianTimeTracker';
 import { CompactTimeTracker } from './CompactTimeTracker';
 
-const WorkerDashboard = () => {
+const CompactWorkerDashboard = () => {
   const { user } = useAuth();
   const { isTablet, isMobile } = useDevice();
   const { toast } = useToast();
@@ -577,4 +577,4 @@ const WorkerDashboard = () => {
   );
 };
 
-export default WorkerDashboard;
+export { CompactWorkerDashboard };

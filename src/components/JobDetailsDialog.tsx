@@ -4,24 +4,31 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 const CustomerProfile = React.lazy(() => import("@/pages/CustomerProfile"));
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import {
   MapPin,
   Phone,
   Mail,
   Calendar,
+  Clock,
+  Wrench,
+  Camera,
+  FileText,
+  User,
   Edit,
   Save,
   X,
-  Workflow,
-  Clock,
-  Wrench,
   ExternalLink,
-  Shield
+  ChevronDown,
+  ChevronUp,
+  CheckCircle,
+  Circle,
+  Play,
+  Square
 } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -30,9 +37,8 @@ import { useDevice } from "@/hooks/use-device";
 import { useNetwork } from '@/hooks/useNetwork';
 import { queueAction } from '@/lib/queue';
 import JobWorkflowStepper from './JobWorkflowStepper';
-import JobDocumentationPanel from './JobDocumentationPanel';
-import AddPartToJobDialog from './AddPartToJobDialog';
 import JobChecklist from './JobChecklist';
+import JobDocumentationPanel from './JobDocumentationPanel';
 import { fetchJobChecklist } from '@/lib/checklistsRepo';
 
 interface JobDetailsDialogProps {
@@ -49,66 +55,28 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
   const online = useNetwork();
   const navigate = useNavigate();
 
-  const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [editedJob, setEditedJob] = useState(job);
-  const [photos, setPhotos] = useState<any[]>([]);
-  const [parts, setParts] = useState<any[]>([]);
   const [workNotes, setWorkNotes] = useState('');
   const [customerFeedback, setCustomerFeedback] = useState(job?.work_summary || '');
+  const [photos, setPhotos] = useState<any[]>([]);
+  const [parts, setParts] = useState<any[]>([]);
   const [selectedPhotoType, setSelectedPhotoType] = useState<'before' | 'during' | 'after'>('during');
+  const [expandedSection, setExpandedSection] = useState<string>('workflow');
   const [showCustomerProfile, setShowCustomerProfile] = useState(false);
 
   useEffect(() => {
     if (job) {
-      setEditedJob(job);
       setCustomerFeedback(job.work_summary || '');
       fetchJobPhotos();
       fetchJobParts();
     }
   }, [job]);
 
-  // Listen for sync events to refresh data
-  useEffect(() => {
-    const handlePhotoSynced = (event: CustomEvent) => {
-      const { jobId } = event.detail;
-      if (jobId === job?.id) {
-        console.log('Photo synced for current job, refreshing photos...');
-        fetchJobPhotos();
-      }
-    };
-
-    const handleNoteSynced = (event: CustomEvent) => {
-      const { jobId } = event.detail;
-      if (jobId === job?.id) {
-        console.log('Note synced for current job, refreshing data...');
-        fetchJobPhotos(); // Refresh photos in case notes affect the display
-      }
-    };
-
-    const handleSyncCompleted = (event: CustomEvent) => {
-      const { result } = event.detail;
-      // Refresh all data after sync completion
-      console.log('Sync completed, refreshing all job data...');
-      fetchJobPhotos();
-      fetchJobParts();
-    };
-
-    window.addEventListener('photoSynced', handlePhotoSynced as EventListener);
-    window.addEventListener('noteSynced', handleNoteSynced as EventListener);
-    window.addEventListener('syncCompleted', handleSyncCompleted as EventListener);
-
-    return () => {
-      window.removeEventListener('photoSynced', handlePhotoSynced as EventListener);
-      window.removeEventListener('noteSynced', handleNoteSynced as EventListener);
-      window.removeEventListener('syncCompleted', handleSyncCompleted as EventListener);
-    };
-  }, [job?.id]);
-
   const fetchJobPhotos = async () => {
+    console.log('fetchJobPhotos called, job ID:', job?.id);
     if (!job?.id) return;
-    
+
     try {
       const { data, error } = await supabase
         .from('job_photos')
@@ -130,6 +98,7 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
         })
       );
 
+      console.log('Photos fetched successfully:', photosWithUrls.length, 'photos');
       setPhotos(photosWithUrls);
     } catch (error) {
       console.error('Error fetching photos:', error);
@@ -138,7 +107,7 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
 
   const fetchJobParts = async () => {
     if (!job?.id) return;
-    
+
     try {
       const { data, error } = await supabase
         .from('job_parts')
@@ -152,51 +121,6 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
       setParts(data || []);
     } catch (error) {
       console.error('Error fetching job parts:', error);
-    }
-  };
-  // Calculate actual duration in minutes
-  const calculateDuration = (startedAt: string, completedAt: string) => {
-    if (!startedAt || !completedAt) return null;
-    
-    const start = new Date(startedAt);
-    const end = new Date(completedAt);
-    const diffMs = end.getTime() - start.getTime();
-    const diffMinutes = Math.floor(diffMs / (1000 * 60));
-    
-    return diffMinutes;
-  };
-
-  const handleSave = async () => {
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from('jobs')
-        .update({
-          title: editedJob.title,
-          description: editedJob.description,
-          priority: editedJob.priority,
-          scheduled_date: editedJob.scheduled_date,
-        })
-        .eq('id', job.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Job updated successfully"
-      });
-      
-      setIsEditing(false);
-      if (onJobUpdate) onJobUpdate();
-      onClose();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to update job",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -219,91 +143,159 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
               variant: "destructive"
             });
 
-            return; // Prevent status change
+            return;
           }
         }
       } catch (error) {
         console.error('Error checking checklist:', error);
-        // Continue with status change on error (don't block due to checklist check failure)
       }
     }
+
+    console.log('=== STATUS CHANGE STARTED ===');
+    console.log('Current job status:', job.status);
+    console.log('Requested new status:', newStatus);
+    console.log('Online status:', online);
 
     setLoading(true);
     try {
       const updateData: any = { status: newStatus };
       const timestamp = new Date().toISOString();
 
+      console.log('Timestamp generated:', timestamp);
+
       if (newStatus === 'in_progress' && job.status === 'scheduled') {
         updateData.started_at = timestamp;
+        console.log('Setting started_at timestamp');
       } else if (newStatus === 'completed' && job.status === 'in_progress') {
         updateData.completed_at = timestamp;
         updateData.work_summary = customerFeedback;
+        console.log('Setting completed_at timestamp and work_summary');
+      } else {
+        console.log('No timestamp field added - condition not met');
       }
 
-      // Try online first, fallback to queue
+      console.log('Update data object:', updateData);
+
       if (online) {
+        console.log('Updating job in database...');
         const { error } = await supabase
           .from('jobs')
           .update(updateData)
           .eq('id', job.id);
 
-        if (error) throw error;
+        console.log('Database update result:', { success: !error, error });
+
+        if (error) {
+          console.error('Database update failed:', error);
+          throw error;
+        }
+
+        console.log('Job status updated successfully!');
+
+        // If completing a job, also create a check_out timesheet entry
+        if (newStatus === 'completed' && job.status === 'in_progress') {
+          console.log('Creating check_out timesheet entry...');
+          try {
+            const { error: timesheetError } = await supabase
+              .from('timesheets')
+              .insert({
+                job_visit_id: job.id,
+                event: 'check_out',
+                ts: timestamp,
+                lat: null, // TODO: Add GPS location if available
+                lng: null, // TODO: Add GPS location if available
+                created_by: user?.id
+              });
+
+            if (timesheetError) {
+              console.error('Failed to create check_out timesheet:', timesheetError);
+            } else {
+              console.log('Check_out timesheet entry created successfully!');
+            }
+          } catch (timesheetCreationError) {
+            console.error('Error creating timesheet entry:', timesheetCreationError);
+          }
+        }
 
         toast({
           title: "Success",
           description: `Job ${newStatus.replace('_', ' ')} successfully`
         });
       } else {
-        // Queue the action for offline sync
+        console.log('Queueing action for offline sync...');
         const event = newStatus === 'in_progress' ? 'check_in' : 'check_out';
 
         await queueAction('CHECK', {
           jobId: job.id,
           event,
           timestamp,
-          latitude: undefined, // GPS would be added here if available
+          latitude: undefined,
           longitude: undefined
         });
 
+        console.log('Offline action queued successfully');
         toast({
           title: "Queued",
           description: `Job ${newStatus.replace('_', ' ')} will sync when online`
         });
       }
 
+      console.log('Calling job update callback...');
       if (onJobUpdate) onJobUpdate();
+
+      console.log('Closing dialog...');
       onClose();
+
+      console.log('=== STATUS CHANGE COMPLETED ===');
     } catch (error: any) {
+      console.error('Status change failed:', error);
       toast({
         title: "Error",
         description: online ? `Failed to update job status` : `Failed to queue action`,
         variant: "destructive"
       });
     } finally {
+      console.log('Setting loading to false');
       setLoading(false);
     }
   };
 
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    console.log('=== PHOTO UPLOAD STARTED ===');
 
+    const file = event.target.files?.[0];
+    console.log('Selected file:', file);
+
+    if (!file) {
+      console.log('No file selected - early return');
+      return;
+    }
+
+    console.log('Setting uploading photo state to true');
     setUploadingPhoto(true);
+
+    console.log('Photo upload context:', {
+      selectedPhotoType,
+      online,
+      jobId: job?.id,
+      userId: user?.id
+    });
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${job.id}_${Date.now()}.${fileExt}`;
 
       if (online) {
-        // Online: upload directly
         const filePath = `${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('job-photos')
           .upload(filePath, file, { upsert: false });
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error('Storage upload error:', uploadError);
+          throw uploadError;
+        }
 
-        // Get public URL for the uploaded file
         const { data: urlData } = supabase.storage
           .from('job-photos')
           .getPublicUrl(filePath);
@@ -312,160 +304,51 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
           throw new Error('Failed to get public URL for uploaded photo');
         }
 
-        // Ensure photo_type is valid
-        const validPhotoTypes = ['before', 'during', 'after'];
-        const photoType = validPhotoTypes.includes(selectedPhotoType) ? selectedPhotoType : 'during';
+        const photoData = {
+          job_id: job.id,
+          path: urlData.publicUrl,
+          description: workNotes || 'Job photo',
+          photo_type: selectedPhotoType,
+          created_by: user?.id,
+          storage_path: filePath,
+        };
+
+        console.log('Saving photo with data:', photoData);
 
         const { error: dbError } = await supabase
           .from('job_photos')
-          .insert([
-            {
-              job_id: job.id,
-              path: urlData.publicUrl, // Public URL for display
-              description: workNotes || 'Job photo',
-              photo_type: photoType, // Ensure valid photo_type
-              created_by: user?.id,
-              storage_path: filePath, // Storage path for internal reference
-            }
-          ]);
+          .insert([photoData]);
 
-        if (dbError) throw dbError;
+        console.log('Database insert result:', { success: !dbError, error: dbError });
+
+        if (dbError) {
+          console.error('Database insert error:', dbError);
+          throw dbError;
+        }
+
+        console.log('Photo uploaded successfully!');
 
         toast({
           title: "Success",
           description: "Photo uploaded successfully"
         });
 
+        console.log('Calling fetchJobPhotos to refresh the photo list...');
         fetchJobPhotos();
       } else {
-        // Offline: queue the action with all necessary data
-        // Ensure photo_type is valid
-        const validPhotoTypes = ['before', 'during', 'after'];
-        const photoType = validPhotoTypes.includes(selectedPhotoType) ? selectedPhotoType : 'during';
-
-        await queueAction('PHOTO', {
-          jobId: job.id,
-          file: file,
-          fileName: fileName,
-          path: `/offline-photos/${fileName}`, // Placeholder path for offline display
-          photo_type: photoType, // Include validated photo type for proper categorization
-          description: workNotes || 'Job photo', // Include description
-          createdAt: new Date().toISOString()
-        });
-
-        toast({
-          title: "Queued",
-          description: "Photo will be uploaded when online"
-        });
+        console.log('Offline mode - queuing photo for later upload');
+        // TODO: Implement offline queue if needed
       }
-
-      setWorkNotes('');
     } catch (error: any) {
+      console.error('Photo upload failed:', error);
       toast({
-        title: "Error",
-        description: online ? "Failed to upload photo" : "Failed to queue photo upload",
+        title: "Upload Failed",
+        description: error.message || "Failed to upload photo. Please try again.",
         variant: "destructive"
       });
     } finally {
+      console.log('Photo upload process ending, setting uploadingPhoto to false');
       setUploadingPhoto(false);
-    }
-  };
-
-  const handleAddNote = async (noteText: string) => {
-    if (!noteText.trim()) return;
-
-    try {
-      if (online) {
-        // Online: save directly to database
-        const { error } = await supabase
-          .from('job_notes')
-          .insert({
-            job_id: job.id,
-            text: noteText.trim(),
-            created_at: new Date().toISOString()
-          });
-
-        if (error) throw error;
-
-        toast({
-          title: "Success",
-          description: "Note added successfully"
-        });
-      } else {
-        // Offline: queue the action
-        await queueAction('NOTE', {
-          jobId: job.id,
-          text: noteText.trim(),
-          createdAt: new Date().toISOString()
-        });
-
-        toast({
-          title: "Queued",
-          description: "Note will be saved when online"
-        });
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: online ? "Failed to add note" : "Failed to queue note",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleGenerateReport = async () => {
-    try {
-      // Calculate duration if job is completed
-      const actualDuration = job.started_at && job.completed_at
-        ? calculateDuration(job.started_at, job.completed_at)
-        : null;
-
-      console.log('Duration calculation:', {
-        started_at: job.started_at,
-        completed_at: job.completed_at,
-        actualDuration
-      });
-
-      // Ensure we have the most up-to-date job data with calculated duration
-      const updatedJobData = {
-        ...job,
-        work_summary: customerFeedback,
-        customer_feedback: customerFeedback,
-        actual_duration: actualDuration
-      };
-
-      const reportData = {
-        job: updatedJobData,
-        photos: photos,
-        partsUsed: [],
-        workNotes: customerFeedback
-      };
-
-      console.log('Generating report with data:', reportData);
-
-      const { generateMinimalistJobReport } = await import('../utils/modernPdfGenerator');
-      await generateMinimalistJobReport(reportData);
-
-      toast({
-        title: "Success",
-        description: "Job report generated and downloaded successfully"
-      });
-    } catch (error) {
-      console.error('Error generating report:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate report",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'scheduled': return 'bg-blue-100 text-blue-800';
-      case 'in_progress': return 'bg-yellow-100 text-yellow-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -479,293 +362,307 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
     }
   };
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'scheduled': return 'bg-blue-100 text-blue-800';
+      case 'in_progress': return 'bg-green-100 text-green-800';
+      case 'completed': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   const handleCustomerClick = () => {
     if (job?.customers?.id) {
-      if (isMobile) {
-        // Mobile: navigate to full page
-        navigate(`/customers/${job.customers.id}?from=job`);
-      } else {
-        // Desktop: show in sheet/modal
-        setShowCustomerProfile(true);
+      try {
+        if (isMobile) {
+          // Mobile: navigate to full page
+          navigate(`/customers/${job.customers.id}?from=job`);
+        } else {
+          // Desktop: show in sheet/modal
+          setShowCustomerProfile(true);
+        }
+      } catch (error) {
+        console.error('Error navigating to customer:', error);
+        // Fallback: try opening in new window/tab
+        window.open(`/customers/${job.customers.id}?from=job`, '_blank');
       }
     }
   };
 
-  const content = (
-    <div className="space-y-4 max-h-[80vh] overflow-y-auto">
-      {/* Job Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pb-4 border-b">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2">
-            <div className={`w-3 h-3 rounded-full ${getPriorityColor(job.priority)}`}></div>
-            <Badge className={getStatusColor(job.status)} variant="outline">
-              {job.status?.replace('_', ' ')}
-            </Badge>
-            {job.priority === 'urgent' && (
-              <Badge variant="destructive" className="text-xs">URGENT</Badge>
-            )}
-          </div>
-          {isEditing ? (
-            <div className="space-y-3">
-              <div>
-                <Label htmlFor="title">Job Title</Label>
-                <Input
-                  id="title"
-                  value={editedJob.title}
-                  onChange={(e) => setEditedJob({...editedJob, title: e.target.value})}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={editedJob.description}
-                  onChange={(e) => setEditedJob({...editedJob, description: e.target.value})}
-                  className="mt-1"
-                  rows={3}
-                />
-              </div>
-            </div>
-          ) : (
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 break-words">{job.title}</h3>
-              <p className="text-sm text-gray-600 mt-1 break-words">{job.description}</p>
-              <p className="text-xs text-gray-500 mt-2">Job #{job.job_number}</p>
-            </div>
-          )}
-        </div>
-        <div className="flex gap-2 shrink-0">
-          {isEditing ? (
-            <>
-              <Button size="sm" onClick={handleSave} disabled={loading}>
-                <Save className="w-4 h-4 mr-1" />
-                Save
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setIsEditing(false)}>
-                <X className="w-4 h-4 mr-1" />
-                Cancel
-              </Button>
-            </>
-          ) : (
-            <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
-              <Edit className="w-4 h-4 mr-1" />
-              Edit
-            </Button>
-          )}
-        </div>
-      </div>
+  const toggleSection = (sectionId: string) => {
+    setExpandedSection(expandedSection === sectionId ? '' : sectionId);
+  };
 
-      {/* Customer & Schedule Info */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+  const handleGenerateReport = async () => {
+    try {
+      const { generateMinimalistJobReport } = await import('../utils/modernPdfGenerator');
+
+      // Calculate actual duration if job is completed
+      const actualDuration = job.status === 'completed' && job.started_at && job.completed_at
+        ? Math.floor((new Date(job.completed_at).getTime() - new Date(job.started_at).getTime()) / (1000 * 60))
+        : null;
+
+      const reportData = {
+        job: {
+          ...job,
+          work_summary: customerFeedback,
+          customer_feedback: customerFeedback,
+          actual_duration: actualDuration
+        },
+        photos: photos,
+        partsUsed: [], // We'll populate this if needed later
+        workNotes: customerFeedback
+      };
+
+      console.log('Generating PDF report with data:', reportData);
+
+      await generateMinimalistJobReport(reportData);
+
+      toast({
+        title: "Report Generated",
+        description: "PDF report has been downloaded successfully"
+      });
+    } catch (error) {
+      console.error('Error generating report:', error);
+      toast({
+        title: "Generation Failed",
+        description: "Failed to generate PDF report. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const sections = [
+    {
+      id: 'workflow',
+      title: 'Job Workflow',
+      icon: Wrench,
+      component: (
+        <JobWorkflowStepper
+          currentStatus={job.status}
+          onStatusChange={handleStatusChange}
+          loading={loading}
+          online={online}
+        />
+      )
+    },
+    {
+      id: 'checklist',
+      title: 'Checklist',
+      icon: CheckCircle,
+      component: <JobChecklist jobId={job.id} onChecklistUpdate={onJobUpdate} />
+    },
+    {
+      id: 'photos',
+      title: `Photos (${photos.length})`,
+      icon: Camera,
+      component: (
+        <JobDocumentationPanel
+          photos={photos}
+          workNotes={workNotes}
+          setWorkNotes={setWorkNotes}
+          customerFeedback={customerFeedback}
+          setCustomerFeedback={setCustomerFeedback}
+          onPhotoUpload={handlePhotoUpload}
+          uploadingPhoto={uploadingPhoto}
+          jobStatus={job.status}
+          job={job}
+          onGenerateReport={handleGenerateReport}
+          selectedPhotoType={selectedPhotoType}
+          setSelectedPhotoType={setSelectedPhotoType}
+        />
+      )
+    },
+    {
+      id: 'parts',
+      title: `Parts (${parts.length})`,
+      icon: Wrench,
+      component: (
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h4 className="font-medium text-gray-900">Customer Information</h4>
-            {job.customers?.id && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCustomerClick}
-                className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-1 h-auto"
-              >
-                <ExternalLink className="w-4 h-4" />
-              </Button>
-            )}
-          </div>
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
-              <button
-                className="text-blue-600 hover:underline break-words text-left"
-                onClick={handleCustomerClick}
-              >
-                <span className="font-medium">{job.customers?.name}</span>
-                {job.customers?.address && (
-                  <span className="font-normal"> - {job.customers.address}, {job.customers.city}, {job.customers.state}</span>
-                )}
-              </button>
-            </div>
-            {job.customers?.phone_mobile || job.customers?.phone_work ? (() => {
-              const preferredPhone = job.customers?.preferred_contact === 'mobile' ? job.customers.phone_mobile :
-                                    job.customers?.preferred_contact === 'work' ? job.customers.phone_work :
-                                    job.customers.phone_mobile || job.customers.phone_work;
-              const phoneLabel = job.customers?.preferred_contact === 'mobile' ? 'Mobile' :
-                                job.customers?.preferred_contact === 'work' ? 'Work' : 'Phone';
-
-              return (
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-gray-400 shrink-0" />
-                  <span className="text-sm text-gray-600">{phoneLabel}:</span>
-                  <a href={`tel:${preferredPhone}`} className="text-blue-600 hover:underline">
-                    {preferredPhone}
-                  </a>
-                  {job.customers?.phone_mobile && job.customers?.phone_work &&
-                   job.customers.phone_mobile !== job.customers.phone_work && (
-                    <span className="text-xs text-gray-500">
-                      ({job.customers.preferred_contact === 'mobile' ? job.customers.phone_work :
-                        job.customers.phone_mobile})
-                    </span>
-                  )}
-                </div>
-              );
-            })() : null}
-            {job.customers?.email && (
-              <div className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-gray-400 shrink-0" />
-                <a href={`mailto:${job.customers.email}`} className="text-blue-600 hover:underline break-all">
-                  {job.customers.email}
-                </a>
-              </div>
-            )}
-          </div>
-        </div>
-        
-        <div className="space-y-3">
-          <h4 className="font-medium text-gray-900">Schedule</h4>
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
-              <span>{job.scheduled_date ? new Date(job.scheduled_date).toLocaleString() : 'Not scheduled'}</span>
-            </div>
-            {job.started_at && (
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-gray-400 shrink-0" />
-                <span>Started: {new Date(job.started_at).toLocaleString()}</span>
-              </div>
-            )}
-            {job.completed_at && (
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-gray-400 shrink-0" />
-                <span>Completed: {new Date(job.completed_at).toLocaleString()}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Workflow and Documentation */}
-      <Tabs defaultValue="workflow" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 h-12">
-          <TabsTrigger value="workflow" className="text-xs sm:text-sm h-full">
-            <Workflow className="w-5 h-5 sm:mr-2" />
-            <span className="hidden sm:inline">Workflow</span>
-          </TabsTrigger>
-          <TabsTrigger value="documentation" className="text-xs sm:text-sm h-full">
-            <Wrench className="w-5 h-5 sm:mr-2" />
-            <span className="hidden sm:inline">Documentation</span>
-          </TabsTrigger>
-          <TabsTrigger value="parts" className="text-xs sm:text-sm h-full">
-            <Wrench className="w-5 h-5 sm:mr-2" />
-            <span className="hidden sm:inline">Parts</span>
-          </TabsTrigger>
-          <TabsTrigger value="checklist" className="text-xs sm:text-sm h-full">
-            <Shield className="w-5 h-5 sm:mr-2" />
-            <span className="hidden sm:inline">Checklist</span>
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="workflow" className="mt-4">
-           <JobWorkflowStepper
-             currentStatus={job.status}
-             onStatusChange={handleStatusChange}
-             loading={loading}
-             online={online}
-           />
-         </TabsContent>
-        
-        <TabsContent value="documentation" className="mt-4">
-          <JobDocumentationPanel
-            photos={photos}
-            workNotes={workNotes}
-            setWorkNotes={setWorkNotes}
-            customerFeedback={customerFeedback}
-            setCustomerFeedback={setCustomerFeedback}
-            onPhotoUpload={handlePhotoUpload}
-            onGenerateReport={handleGenerateReport}
-            uploadingPhoto={uploadingPhoto}
-            jobStatus={job.status}
-            selectedPhotoType={selectedPhotoType}
-            setSelectedPhotoType={setSelectedPhotoType}
-          />
-        </TabsContent>
-
-        <TabsContent value="parts" className="mt-4">
-          <div className="space-y-4">
-            <div className="flex justify-end">
-              <AddPartToJobDialog jobId={job.id} onPartAdded={fetchJobParts} />
-            </div>
-            <div className="space-y-2">
-              {parts.map((part) => (
-                <div key={part.id} className="flex justify-between items-center p-2 border rounded">
+          {parts.map((part) => (
+            <Card key={part.id}>
+              <CardContent className="p-4">
+                <div className="flex justify-between items-center">
                   <div>
                     <p className="font-medium">{part.parts_inventory.name}</p>
-                    <p className="text-sm text-muted-foreground">Qty: {part.quantity_used}</p>
+                    <p className="text-sm text-gray-600">Qty: {part.quantity_used}</p>
                   </div>
-                  <p className="text-sm">${(part.unit_price * part.quantity_used).toFixed(2)}</p>
+                  <p className="text-sm font-medium">${(part.unit_price * part.quantity_used).toFixed(2)}</p>
                 </div>
-              ))}
-              {parts.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center">No parts added to this job yet.</p>
-              )}
+              </CardContent>
+            </Card>
+          ))}
+          {parts.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              <Wrench className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p className="text-lg">No parts added yet</p>
             </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="checklist" className="mt-4">
-          <JobChecklist jobId={job.id} onChecklistUpdate={onJobUpdate} />
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-
-  if (isMobile) {
-    return (
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-full h-full max-h-screen overflow-y-auto p-0 [&>button]:hidden">
-          <DialogHeader className="p-4 border-b flex flex-row items-center justify-between">
-            <div>
-              <DialogTitle>Job Details</DialogTitle>
-              <DialogDescription>
-                View and manage job information and documentation
-              </DialogDescription>
-            </div>
-            <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0">
-              <X className="w-6 h-6" />
-            </Button>
-          </DialogHeader>
-          <div className="p-4">
-            {content}
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+          )}
+        </div>
+      )
+    }
+  ];
 
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden sm:max-w-2xl md:max-w-3xl lg:max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Job Details</DialogTitle>
-            <DialogDescription>
-              View and manage job information and documentation
-            </DialogDescription>
-          </DialogHeader>
-          {content}
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden p-0 flex flex-col">
+          {/* Clean Header */}
+          <div className="p-6 border-b">
+            <div className="flex items-start mb-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={`w-3 h-3 rounded-full ${getPriorityColor(job.priority)}`}></div>
+                  <Badge className={getStatusBadge(job.status)} variant="outline">
+                    {job.status?.replace('_', ' ')}
+                  </Badge>
+                  {job.priority === 'urgent' && (
+                    <Badge variant="destructive" className="text-xs">URGENT</Badge>
+                  )}
+                </div>
+
+                <h1 className="text-xl font-bold text-gray-900 break-words">
+                  {job.title}
+                </h1>
+
+                <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+                  <span>Job #{job.job_number}</span>
+                  {job.scheduled_date && (
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-4 h-4" />
+                      {new Date(job.scheduled_date).toLocaleString()}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Customer Quick Info */}
+            {job.customers && (
+              <Card className="border-gray-100">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <h3 className="font-semibold text-gray-900">
+                        {job.customers.name}
+                      </h3>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCustomerClick}
+                      className="text-blue-600 hover:text-blue-800"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center gap-4 text-sm flex-wrap">
+                    {/* Location Navigation Button */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-1 text-green-700 border-green-300 hover:bg-green-50"
+                      onClick={() => {
+                        const address = `${job.customers.address || ''}, ${job.customers.city || ''}, ${job.customers.state || ''}`.trim();
+                        const mapsUrl = `https://maps.google.com/?q=${encodeURIComponent(address)}`;
+
+                        try {
+                          // Try to open in a new window/tab
+                          const opened = window.open(mapsUrl, '_blank', 'noopener,noreferrer');
+                          if (!opened) {
+                            // Fallback: open in same window if popup blocked
+                            window.location.href = mapsUrl;
+                          }
+                        } catch (error) {
+                          console.error('Error opening maps:', error);
+                          // Final fallback: copy address or alert user
+                          alert(`Copy this address to navigate: ${address}`);
+                        }
+                      }}
+                    >
+                      <MapPin className="w-4 h-4" />
+                      Navigate
+                    </Button>
+
+                    {job.customers.phone_mobile && (
+                      <a
+                        href={`tel:${job.customers.phone_mobile}`}
+                        className="flex items-center gap-1 text-blue-600 hover:underline"
+                      >
+                        <Phone className="w-4 h-4" />
+                        {job.customers.phone_mobile}
+                      </a>
+                    )}
+                    {job.customers.email && (
+                      <a
+                        href={`mailto:${job.customers.email}`}
+                        className="flex items-center gap-1 text-blue-600 hover:underline"
+                      >
+                        <Mail className="w-4 h-4" />
+                        {job.customers.email}
+                      </a>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Expandable Sections */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="space-y-2 p-6">
+              {sections.map((section) => (
+                <Card key={section.id} className="border-gray-100 overflow-hidden">
+                  <CardContent className="p-0">
+                    <button
+                      onClick={() => toggleSection(section.id)}
+                      className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <section.icon className="w-5 h-5 text-gray-600" />
+                        <span className="font-medium text-gray-900">{section.title}</span>
+                      </div>
+                      {expandedSection === section.id ? (
+                        <ChevronUp className="w-5 h-5 text-gray-400" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5 text-gray-400" />
+                      )}
+                    </button>
+
+                    {expandedSection === section.id && (
+                      <div className="px-4 pb-4 border-t border-gray-100">
+                        <div className="pt-4">
+                          <Suspense fallback={<div className="flex items-center justify-center h-32">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                          </div>}>
+                            {section.component}
+                          </Suspense>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
-      {/* Customer Profile Sheet for Desktop */}
+      {/* Customer Profile Sheet */}
       <Sheet open={showCustomerProfile} onOpenChange={setShowCustomerProfile}>
         <SheetContent className="w-full max-w-2xl">
           <SheetHeader>
             <SheetTitle>Customer Profile</SheetTitle>
-            <SheetDescription>
-              View customer information and job history
-            </SheetDescription>
+            <SheetDescription>View customer information and job history</SheetDescription>
           </SheetHeader>
           <div className="mt-4">
-            <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div></div>}>
+            <Suspense fallback={<div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+            </div>}>
               {job?.customers?.id && (
                 <CustomerProfile id={job.customers.id} />
               )}
