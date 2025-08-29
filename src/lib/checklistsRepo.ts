@@ -11,8 +11,16 @@ export interface ChecklistItem {
   id: string;
   text: string;
   required: boolean;
+  photoRequired?: boolean;
+  noteRequired?: boolean;
   completed?: boolean;
   completed_at?: string;
+  note?: string;
+  photos?: Array<{
+    path: string;
+    created_at: string;
+    created_by: string;
+  }>;
 }
 
 export interface JobChecklist {
@@ -320,8 +328,12 @@ function createChecklistItemsFromTemplate(items: any[]): ChecklistItem[] {
       id: item.id,
       text: item.text,
       required: Boolean(item.required),
+      photoRequired: Boolean(item.photoRequired),
+      noteRequired: Boolean(item.noteRequired),
       completed: false,
-      completed_at: undefined
+      completed_at: undefined,
+      note: '',
+      photos: []
     }));
 }
 
@@ -440,6 +452,169 @@ export async function resyncChecklistTemplates(): Promise<void> {
     }
   } catch (error) {
     console.error('❌ Failed to resync templates:', error);
+  }
+}
+
+/**
+ * Add a photo to a checklist item
+ */
+export async function addPhotoToChecklistItem(
+  checklistId: string,
+  itemId: string,
+  file: File,
+  description?: string
+): Promise<{ success: boolean; photo?: { path: string; created_at: string; created_by: string } }> {
+  try {
+    // Upload photo to storage (reuse existing photo upload logic)
+    const fileName = `${checklistId}_${itemId}_${Date.now()}.jpg`;
+    const storagePath = `checklist-photos/${fileName}`;
+
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('job-photos')
+      .upload(storagePath, file);
+
+    if (uploadError) throw uploadError;
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('job-photos')
+      .getPublicUrl(storagePath);
+
+    const photoEntry = {
+      path: urlData.publicUrl,
+      created_at: new Date().toISOString(),
+      created_by: (await supabase.auth.getUser()).data.user?.id || 'unknown'
+    };
+
+    if (description) {
+      (photoEntry as any).description = description;
+    }
+
+    // Update the checklist item
+    const result = await updateChecklistItemPhotos(checklistId, itemId, [photoEntry]);
+
+    return { success: true, photo: photoEntry };
+  } catch (error) {
+    console.error('Error adding photo to checklist item:', error);
+    return { success: false };
+  }
+}
+
+/**
+ * Update checklist item note
+ */
+export async function updateChecklistItemNote(
+  checklistId: string,
+  itemId: string,
+  note: string
+): Promise<{ success: boolean }> {
+  try {
+    const { checklist } = await fetchJobChecklistById(checklistId);
+    if (!checklist) return { success: false };
+
+    const updatedItems = checklist.items.map(item =>
+      item.id === itemId
+        ? { ...item, note }
+        : item
+    );
+
+    await saveJobChecklist({
+      ...checklist,
+      items: updatedItems
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating checklist item note:', error);
+    return { success: false };
+  }
+}
+
+/**
+ * Update checklist item photos array
+ */
+export async function updateChecklistItemPhotos(
+  checklistId: string,
+  itemId: string,
+  newPhotos: Array<{ path: string; created_at: string; created_by: string }>
+): Promise<{ success: boolean }> {
+  try {
+    const { checklist } = await fetchJobChecklistById(checklistId);
+    if (!checklist) return { success: false };
+
+    const updatedItems = checklist.items.map(item =>
+      item.id === itemId
+        ? { ...item, photos: [...(item.photos || []), ...newPhotos] }
+        : item
+    );
+
+    await saveJobChecklist({
+      ...checklist,
+      items: updatedItems
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating checklist item photos:', error);
+    return { success: false };
+  }
+}
+
+/**
+ * Set checklist item as done with requirement enforcement
+ */
+export async function setChecklistItemDone(
+  checklistId: string,
+  itemId: string,
+  done: boolean
+): Promise<{ success: boolean; checklist?: JobChecklist; requirements?: string[] }> {
+  try {
+    const { checklist } = await fetchJobChecklistById(checklistId);
+    if (!checklist) return { success: false };
+
+    const item = checklist.items.find(item => item.id === itemId);
+    if (!item) return { success: false };
+
+    const requirements: string[] = [];
+
+    if (done) {
+      // Check if all requirements are met
+      if (item.noteRequired && !item.note?.trim()) {
+        requirements.push('note');
+      }
+      if (item.photoRequired && (!item.photos || item.photos.length === 0)) {
+        requirements.push('photo');
+      }
+
+      if (requirements.length > 0) {
+        return { success: false, requirements };
+      }
+    }
+
+    // Update the item
+    const updatedItems = checklist.items.map(i =>
+      i.id === itemId
+        ? {
+            ...i,
+            completed: done,
+            completed_at: done ? new Date().toISOString() : undefined
+          }
+        : i
+    );
+
+    // Update counts
+    const completedCount = updatedItems.filter(i => i.completed).length;
+
+    const updatedChecklist = await saveJobChecklist({
+      ...checklist,
+      items: updatedItems,
+      completed_count: completedCount
+    });
+
+    return { success: true, checklist: updatedChecklist };
+  } catch (error) {
+    console.error('Error setting checklist item done:', error);
+    return { success: false };
   }
 }
 

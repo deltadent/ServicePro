@@ -77,7 +77,7 @@ const JobWorkflowStepper = ({ currentStatus, onStatusChange, loading, online = t
       <h3 className="text-lg font-semibold mb-4">Job Workflow</h3>
       <div className="flex items-center justify-between">
         {steps.map((step, index) => (
-          <React.Fragment key={step.id}>
+          <div key={step.id} className="flex items-center">
             <div className="flex flex-col items-center text-center">
               <button
                 onClick={() => canAdvanceToStep(step.id) && onStatusChange(step.id)}
@@ -97,7 +97,7 @@ const JobWorkflowStepper = ({ currentStatus, onStatusChange, loading, online = t
                 steps[index + 1].status === 'completed' || steps[index + 1].status === 'active' ? 'bg-green-500' : 'bg-gray-300'
               }`} />
             )}
-          </React.Fragment>
+          </div>
         ))}
       </div>
     </div>

@@ -33,6 +33,7 @@ import JobWorkflowStepper from './JobWorkflowStepper';
 import JobDocumentationPanel from './JobDocumentationPanel';
 import AddPartToJobDialog from './AddPartToJobDialog';
 import JobChecklist from './JobChecklist';
+import CompleteJobDialog from './CompleteJobDialog';
 import { fetchJobChecklist } from '@/lib/checklistsRepo';
 
 interface JobDetailsDialogProps {
@@ -59,6 +60,7 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
   const [customerFeedback, setCustomerFeedback] = useState(job?.work_summary || '');
   const [selectedPhotoType, setSelectedPhotoType] = useState<'before' | 'during' | 'after'>('during');
   const [showCustomerProfile, setShowCustomerProfile] = useState(false);
+  const [showCompleteJobDialog, setShowCompleteJobDialog] = useState(false);
 
   useEffect(() => {
     if (job) {
@@ -201,31 +203,10 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
   };
 
   const handleStatusChange = async (newStatus: string) => {
-    // Check for required checklist items before allowing completion
+    // Intercept completion requests and show CompleteJobDialog
     if (newStatus === 'completed' && job.status === 'in_progress') {
-      try {
-        const { checklist } = await fetchJobChecklist(job.id);
-
-        if (checklist) {
-          const requiredItems = checklist.items.filter(item => item.required);
-          const completedRequiredItems = requiredItems.filter(item => item.completed);
-
-          if (requiredItems.length > 0 && completedRequiredItems.length < requiredItems.length) {
-            const uncompletedCount = requiredItems.length - completedRequiredItems.length;
-
-            toast({
-              title: "Cannot Complete Job",
-              description: `${uncompletedCount} required checklist item${uncompletedCount > 1 ? 's' : ''} must be completed first.`,
-              variant: "destructive"
-            });
-
-            return; // Prevent status change
-          }
-        }
-      } catch (error) {
-        console.error('Error checking checklist:', error);
-        // Continue with status change on error (don't block due to checklist check failure)
-      }
+      setShowCompleteJobDialog(true);
+      return;
     }
 
     setLoading(true);
@@ -235,9 +216,6 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
 
       if (newStatus === 'in_progress' && job.status === 'scheduled') {
         updateData.started_at = timestamp;
-      } else if (newStatus === 'completed' && job.status === 'in_progress') {
-        updateData.completed_at = timestamp;
-        updateData.work_summary = customerFeedback;
       }
 
       // Try online first, fallback to queue
@@ -489,6 +467,17 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
         setShowCustomerProfile(true);
       }
     }
+  };
+
+  const handleJobCompleted = () => {
+    setShowCompleteJobDialog(false);
+    if (onJobUpdate) onJobUpdate();
+    onClose();
+
+    toast({
+      title: "Job Completed",
+      description: "Job has been successfully completed with completion PDF generated.",
+    });
   };
 
   const content = (
@@ -773,6 +762,14 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Complete Job Dialog */}
+      <CompleteJobDialog
+        job={job}
+        isOpen={showCompleteJobDialog}
+        onClose={() => setShowCompleteJobDialog(false)}
+        onJobUpdate={onJobUpdate}
+      />
     </>
   );
 };
