@@ -27,6 +27,9 @@ const FinancialTracking = React.lazy(() => import("@/components/FinancialTrackin
 const CustomerManagementFull = React.lazy(() => import("@/components/CustomerManagementFull"));
 const TechnicianManagementFull = React.lazy(() => import("@/components/TechnicianManagementFull"));
 const ReportsAnalyticsFull = React.lazy(() => import("@/components/ReportsAnalyticsFull"));
+const QuoteManagement = React.lazy(() => import("@/components/quotes/QuoteManagement"));
+const CustomerQuoteView = React.lazy(() => import("@/pages/CustomerQuoteView"));
+const CustomerQuoteResponse = React.lazy(() => import("@/pages/CustomerQuoteResponse"));
 
 // Loading component for Suspense fallback
 const LoadingSpinner = () => (
@@ -105,6 +108,14 @@ const ProtectedApp = () => {
             element={
               <ProtectedRoute requiredRole="admin">
                 <CustomerManagementFull />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/quotes"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <QuoteManagement />
               </ProtectedRoute>
             }
           />
@@ -279,6 +290,26 @@ const AppRoutes = () => {
           element={
             <PageTransition>
               <AuthPage />
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/quote/:quoteId"
+          element={
+            <PageTransition>
+              <Suspense fallback={<LoadingSpinner />}>
+                <CustomerQuoteView />
+              </Suspense>
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/quote/:quoteId/respond"
+          element={
+            <PageTransition>
+              <Suspense fallback={<LoadingSpinner />}>
+                <CustomerQuoteResponse />
+              </Suspense>
             </PageTransition>
           }
         />

@@ -88,6 +88,21 @@ async function processAction(action: QueueItem): Promise<void> {
     case 'CHECK':
       await processCheckAction(action);
       break;
+    case 'QUOTE_CREATE':
+      await processQuoteCreateAction(action);
+      break;
+    case 'QUOTE_UPDATE':
+      await processQuoteUpdateAction(action);
+      break;
+    case 'QUOTE_APPROVE':
+      await processQuoteApproveAction(action);
+      break;
+    case 'QUOTE_DECLINE':
+      await processQuoteDeclineAction(action);
+      break;
+    case 'QUOTE_SEND':
+      await processQuoteSendAction(action);
+      break;
     default:
       throw new Error(`Unknown action type: ${action.type}`);
   }
@@ -284,4 +299,219 @@ async function updateJobCacheWithTimesheet(jobId: string, timesheet: any): Promi
   } catch (error) {
     console.warn('Failed to update cache with timesheet:', error);
   }
+}
+
+/**
+ * Processes a quote creation action
+ * @param action - The quote creation action to process
+ */
+async function processQuoteCreateAction(action: QueueItem): Promise<void> {
+  const { data: offlineQuote, originalRequest } = action.payload;
+
+  if (!originalRequest) {
+    throw new Error('Invalid quote create payload: missing original request');
+  }
+
+  // Create the quote using the original request data
+  const { data: quote, error: quoteError } = await supabase
+    .from('quotes')
+    .insert({
+      customer_id: originalRequest.customer_id,
+      template_id: originalRequest.template_id,
+      title: originalRequest.title,
+      description: originalRequest.description,
+      valid_until: originalRequest.valid_until,
+      terms_and_conditions: originalRequest.terms_and_conditions,
+      notes: originalRequest.notes,
+      tax_rate: originalRequest.tax_rate,
+      discount_amount: originalRequest.discount_amount,
+      created_by: offlineQuote.created_by
+    })
+    .select()
+    .single();
+
+  if (quoteError) throw quoteError;
+
+  // Create quote items if any
+  if (originalRequest.items && originalRequest.items.length > 0) {
+    const { error: itemsError } = await supabase
+      .from('quote_items')
+      .insert(
+        originalRequest.items.map((item: any, index: number) => ({
+          quote_id: quote.id,
+          item_type: item.item_type,
+          name: item.name,
+          description: item.description,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          inventory_item_id: item.inventory_item_id,
+          sort_order: index + 1
+        }))
+      );
+
+    if (itemsError) throw itemsError;
+  }
+
+  // Dispatch event to update UI
+  window.dispatchEvent(new CustomEvent('quoteSynced', {
+    detail: { type: 'create', quote, offlineId: offlineQuote.id }
+  }));
+
+  console.log(`Quote created from offline action: ${quote.id}`);
+}
+
+/**
+ * Processes a quote update action
+ * @param action - The quote update action to process
+ */
+async function processQuoteUpdateAction(action: QueueItem): Promise<void> {
+  const { data: updates, originalRequest } = action.payload;
+
+  if (!updates.id) {
+    throw new Error('Invalid quote update payload: missing quote ID');
+  }
+
+  const { error } = await supabase
+    .from('quotes')
+    .update({
+      title: updates.title,
+      description: updates.description,
+      valid_until: updates.valid_until,
+      terms_and_conditions: updates.terms_and_conditions,
+      notes: updates.notes,
+      tax_rate: updates.tax_rate,
+      discount_amount: updates.discount_amount,
+      status: updates.status,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', updates.id);
+
+  if (error) throw error;
+
+  // Update items if provided
+  if (originalRequest?.items) {
+    // Delete existing items
+    await supabase
+      .from('quote_items')
+      .delete()
+      .eq('quote_id', updates.id);
+
+    // Insert new items
+    if (originalRequest.items.length > 0) {
+      await supabase
+        .from('quote_items')
+        .insert(
+          originalRequest.items.map((item: any, index: number) => ({
+            quote_id: updates.id,
+            item_type: item.item_type,
+            name: item.name,
+            description: item.description,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            inventory_item_id: item.inventory_item_id,
+            sort_order: index + 1
+          }))
+        );
+    }
+  }
+
+  // Dispatch event to update UI
+  window.dispatchEvent(new CustomEvent('quoteSynced', {
+    detail: { type: 'update', quoteId: updates.id }
+  }));
+
+  console.log(`Quote updated from offline action: ${updates.id}`);
+}
+
+/**
+ * Processes a quote approval action
+ * @param action - The quote approval action to process
+ */
+async function processQuoteApproveAction(action: QueueItem): Promise<void> {
+  const { quote_id, signature_data, device_info } = action.payload;
+
+  if (!quote_id || !signature_data) {
+    throw new Error('Invalid quote approval payload: missing quote_id or signature_data');
+  }
+
+  const { error } = await supabase
+    .from('quotes')
+    .update({
+      status: 'approved',
+      approved_at: new Date().toISOString(),
+      customer_signature: {
+        signature_data,
+        timestamp: new Date().toISOString(),
+        device_info
+      }
+    })
+    .eq('id', quote_id);
+
+  if (error) throw error;
+
+  // Dispatch event to update UI
+  window.dispatchEvent(new CustomEvent('quoteSynced', {
+    detail: { type: 'approve', quoteId: quote_id }
+  }));
+
+  console.log(`Quote approved from offline action: ${quote_id}`);
+}
+
+/**
+ * Processes a quote decline action
+ * @param action - The quote decline action to process
+ */
+async function processQuoteDeclineAction(action: QueueItem): Promise<void> {
+  const { quote_id, reason } = action.payload;
+
+  if (!quote_id) {
+    throw new Error('Invalid quote decline payload: missing quote_id');
+  }
+
+  const { error } = await supabase
+    .from('quotes')
+    .update({
+      status: 'declined',
+      declined_at: new Date().toISOString(),
+      declined_reason: reason
+    })
+    .eq('id', quote_id);
+
+  if (error) throw error;
+
+  // Dispatch event to update UI
+  window.dispatchEvent(new CustomEvent('quoteSynced', {
+    detail: { type: 'decline', quoteId: quote_id }
+  }));
+
+  console.log(`Quote declined from offline action: ${quote_id}`);
+}
+
+/**
+ * Processes a quote send action
+ * @param action - The quote send action to process
+ */
+async function processQuoteSendAction(action: QueueItem): Promise<void> {
+  const { quote_id } = action.payload;
+
+  if (!quote_id) {
+    throw new Error('Invalid quote send payload: missing quote_id');
+  }
+
+  const { error } = await supabase
+    .from('quotes')
+    .update({
+      status: 'sent',
+      sent_at: new Date().toISOString()
+    })
+    .eq('id', quote_id);
+
+  if (error) throw error;
+
+  // Dispatch event to update UI
+  window.dispatchEvent(new CustomEvent('quoteSynced', {
+    detail: { type: 'send', quoteId: quote_id }
+  }));
+
+  console.log(`Quote sent from offline action: ${quote_id}`);
 }

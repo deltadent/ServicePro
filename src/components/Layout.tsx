@@ -12,7 +12,8 @@ import {
   Wrench,
   ClipboardList,
   BarChart3,
-  Shield
+  Shield,
+  FileText
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -34,6 +35,7 @@ const Layout = ({ children }: LayoutProps) => {
     { icon: Calendar, label: 'Job Management', path: '/admin/jobs' },
     { icon: Users, label: 'Technicians', path: '/admin/technicians' },
     { icon: Users, label: 'Customers', path: '/admin/customers' },
+    { icon: FileText, label: 'Quotes', path: '/admin/quotes' },
     { icon: Shield, label: 'Checklists', path: '/admin/checklists' },
     { icon: Package, label: 'Inventory', path: '/admin/inventory' },
     { icon: DollarSign, label: 'Financial', path: '/admin/financial' },

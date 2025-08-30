@@ -45,7 +45,7 @@ export interface TimesheetEntry {
 
 export interface QueueItem {
   id: string;
-  type: 'NOTE' | 'PHOTO' | 'CHECK';
+  type: 'NOTE' | 'PHOTO' | 'CHECK' | 'QUOTE_CREATE' | 'QUOTE_UPDATE' | 'QUOTE_APPROVE' | 'QUOTE_DECLINE' | 'QUOTE_SEND';
   payload: any;
   timestamp: string;
   jobId?: string;
@@ -120,12 +120,14 @@ export type ServiceProDB = IDBPDatabase<{
   customers: Customer;
   jobChecklists: JobChecklist;
   checklistTemplates: ChecklistTemplate;
+  quotes: any; // Will use Quote type from quotes.ts to avoid circular dependency
+  quoteTemplates: any; // Will use QuoteTemplate type from quotes.ts
   queues: QueueItem;
   meta: MetaData;
 }>;
 
 const DB_NAME = 'servicepro-db';
-const DB_VERSION = 3;
+const DB_VERSION = 4; // Updated for quotes system
 
 /**
  * Opens and returns the ServicePro IndexedDB database
@@ -139,6 +141,8 @@ export async function openServiceProDB(): Promise<ServiceProDB> {
       customers: Customer;
       jobChecklists: JobChecklist;
       checklistTemplates: ChecklistTemplate;
+      quotes: any;
+      quoteTemplates: any;
       queues: QueueItem;
       meta: MetaData;
     }>(DB_NAME, DB_VERSION, {
@@ -226,6 +230,24 @@ export async function openServiceProDB(): Promise<ServiceProDB> {
           const checklistTemplatesStore = db.createObjectStore('checklistTemplates', { keyPath: 'id' });
           checklistTemplatesStore.createIndex('is_active', 'is_active');
           checklistTemplatesStore.createIndex('name', 'name');
+        }
+
+        // Create quotes store (version 4+)
+        if (oldVersion < 4 && !db.objectStoreNames.contains('quotes')) {
+          const quotesStore = db.createObjectStore('quotes', { keyPath: 'id' });
+          quotesStore.createIndex('customer_id', 'customer_id');
+          quotesStore.createIndex('created_by', 'created_by');
+          quotesStore.createIndex('status', 'status');
+          quotesStore.createIndex('quote_number', 'quote_number');
+          quotesStore.createIndex('created_at', 'created_at');
+        }
+
+        // Create quote templates store (version 4+)
+        if (oldVersion < 4 && !db.objectStoreNames.contains('quoteTemplates')) {
+          const quoteTemplatesStore = db.createObjectStore('quoteTemplates', { keyPath: 'id' });
+          quoteTemplatesStore.createIndex('is_active', 'is_active');
+          quoteTemplatesStore.createIndex('category', 'category');
+          quoteTemplatesStore.createIndex('name', 'name');
         }
 
         // Create meta store

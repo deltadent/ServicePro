@@ -31,12 +31,18 @@ interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   onRowClick?: (row: TData) => void;
+  searchKey?: string;
+  searchPlaceholder?: string;
+  loading?: boolean;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
   onRowClick,
+  searchKey,
+  searchPlaceholder = "Filter...",
+  loading = false,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -60,16 +66,18 @@ export function DataTable<TData, TValue>({
 
   return (
     <div>
-      <div className="flex items-center py-4">
-        <Input
-          placeholder="Filter emails..."
-          value={(table.getColumn("email")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("email")?.setFilterValue(event.target.value)
-          }
-          className="max-w-sm"
-        />
-      </div>
+      {searchKey && (
+        <div className="flex items-center py-4">
+          <Input
+            placeholder={searchPlaceholder}
+            value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
+            onChange={(event) =>
+              table.getColumn(searchKey)?.setFilterValue(event.target.value)
+            }
+            className="max-w-sm"
+          />
+        </div>
+      )}
       <ScrollArea className="rounded-md border whitespace-nowrap">
         <Table>
           <TableHeader>
@@ -91,7 +99,16 @@ export function DataTable<TData, TValue>({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {loading ? (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  Loading...
+                </TableCell>
+              </TableRow>
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
