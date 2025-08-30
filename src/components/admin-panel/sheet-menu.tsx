@@ -21,7 +21,9 @@ import {
     LogOut,
     Wrench,
     ClipboardList,
-    BarChart3
+    BarChart3,
+    FileText,
+    Shield
   } from "lucide-react";
 import { Menu } from "./menu";
 
@@ -32,6 +34,8 @@ export function SheetMenu() {
         { icon: Calendar, label: 'Job Management', path: '/admin/jobs' },
         { icon: Users, label: 'Technicians', path: '/admin/technicians' },
         { icon: Users, label: 'Customers', path: '/admin/customers' },
+        { icon: FileText, label: 'Quotes', path: '/admin/quotes' },
+        { icon: Shield, label: 'Checklists', path: '/admin/checklists' },
         { icon: Package, label: 'Inventory', path: '/admin/inventory' },
         { icon: DollarSign, label: 'Financial', path: '/admin/financial' },
         { icon: BarChart3, label: 'Reports', path: '/admin/reports' },
