@@ -30,6 +30,7 @@ const ReportsAnalyticsFull = React.lazy(() => import("@/components/ReportsAnalyt
 const QuoteManagement = React.lazy(() => import("@/components/quotes/QuoteManagement"));
 const CustomerQuoteView = React.lazy(() => import("@/pages/CustomerQuoteView"));
 const CustomerQuoteResponse = React.lazy(() => import("@/pages/CustomerQuoteResponse"));
+const SettingsLayout = React.lazy(() => import("@/components/settings/SettingsLayout"));
 
 // Loading component for Suspense fallback
 const LoadingSpinner = () => (
@@ -159,6 +160,14 @@ const ProtectedApp = () => {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/admin/settings"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <SettingsLayout />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Worker Routes */}
           <Route
@@ -208,11 +217,8 @@ const ProtectedApp = () => {
           <Route
             path="/settings"
             element={
-              <ProtectedRoute>
-                <div className="text-center py-8">
-                  <h2 className="text-2xl font-bold mb-4">Settings</h2>
-                  <p className="text-gray-600">Coming soon...</p>
-                </div>
+              <ProtectedRoute requiredRole="admin">
+                <SettingsLayout />
               </ProtectedRoute>
             }
           />

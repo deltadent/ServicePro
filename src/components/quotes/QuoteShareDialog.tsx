@@ -3,7 +3,7 @@
  * Provides options to share quote via email, WhatsApp, or copy link
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Quote } from "@/lib/types/quotes";
+import { getCompanyBranding } from "@/lib/companyRepo";
 
 interface QuoteShareDialogProps {
   quote: Quote;
@@ -39,6 +40,22 @@ interface QuoteShareDialogProps {
 const QuoteShareDialog = ({ quote, isOpen, onClose, onSent }: QuoteShareDialogProps) => {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
+  const [companyBranding, setCompanyBranding] = useState<any>(null);
+
+  // Load company branding when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      const loadBranding = async () => {
+        try {
+          const branding = await getCompanyBranding();
+          setCompanyBranding(branding);
+        } catch (error) {
+          console.error('Failed to load company branding:', error);
+        }
+      };
+      loadBranding();
+    }
+  }, [isOpen]);
 
   // Generate quote URLs
   const baseUrl = window.location.origin;
@@ -73,12 +90,12 @@ ${quoteViewUrl}
 If you have any questions, please don't hesitate to contact us.
 
 Best regards,
-ServicePro Team`;
+${companyBranding?.company_name_en || 'ServicePro'} Team`;
 
   // WhatsApp message (shorter format)
   const whatsappMessage = `Hello ${customerName}! 👋
 
-Your ServicePro quote is ready:
+Your ${companyBranding?.company_name_en || 'ServicePro'} quote is ready:
 📋 Quote #${quote.quote_number}
 🔧 ${quote.title}
 💰 $${quote.total_amount.toFixed(2)} SAR

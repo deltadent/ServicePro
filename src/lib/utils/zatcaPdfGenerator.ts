@@ -6,6 +6,8 @@
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
 import { Quote, QuoteItem } from '../types/quotes';
+import { getCompanySettings } from '../companyRepo';
+import { CompanySettings } from '../types/company';
 
 interface CompanyInfo {
   name_en: string;
@@ -14,6 +16,9 @@ interface CompanyInfo {
   address_en: string;
   city_en: string;
   postal_code: string;
+  logo_url?: string;
+  phone?: string;
+  email?: string;
 }
 
 interface ZatcaPdfOptions {
@@ -98,11 +103,28 @@ export class ZatcaPdfGenerator {
    * Add English header with company information
    */
   private async addHeader(companyInfo: CompanyInfo, language: 'en'): Promise<void> {
+    const startY = this.yPosition;
+
+    // Add company logo if available
+    if (companyInfo.logo_url) {
+      try {
+        const logoSize = 50;
+        this.doc.addImage(companyInfo.logo_url, 'PNG', this.margin, this.yPosition, logoSize, logoSize);
+        this.yPosition += logoSize + 15;
+      } catch (error) {
+        console.warn('Failed to load company logo:', error);
+        // Continue without logo
+      }
+    }
+
     // Company Name
     this.doc.setFont('helvetica', 'bold');
     this.doc.setFontSize(this.fonts.titleEn.size);
     this.doc.setTextColor(...this.colors.primary);
-    this.doc.text(companyInfo.name_en, this.margin, this.yPosition);
+
+    // Position name after logo or at the top if no logo
+    const nameX = companyInfo.logo_url ? this.margin + 60 : this.margin;
+    this.doc.text(companyInfo.name_en, nameX, this.yPosition - (companyInfo.logo_url ? 35 : 0));
 
     this.yPosition += 30;
 
@@ -124,6 +146,19 @@ export class ZatcaPdfGenerator {
     this.doc.text(companyInfo.address_en, this.margin + 10, this.yPosition);
     this.yPosition += 12;
     this.doc.text(`${companyInfo.city_en}, ${companyInfo.postal_code}`, this.margin + 10, this.yPosition);
+
+    // Add phone and email if available
+    if (companyInfo.phone) {
+      this.yPosition += 15;
+      this.doc.text('Phone:', this.margin, this.yPosition);
+      this.doc.text(companyInfo.phone, this.margin + 80, this.yPosition);
+    }
+
+    if (companyInfo.email) {
+      this.yPosition += 15;
+      this.doc.text('Email:', this.margin, this.yPosition);
+      this.doc.text(companyInfo.email, this.margin + 80, this.yPosition);
+    }
 
     this.yPosition += 40;
     this.addSeparatorLine();
@@ -386,10 +421,11 @@ export class ZatcaPdfGenerator {
    * Generate ZATCA-compliant QR code data
    */
   private generateZatcaQrData(quote: Quote, companyInfo: CompanyInfo): string {
-    // ZATCA QR Code structure - English only for now
+    // ZATCA QR Code structure - Uses actual company info from settings
     const data = {
-      companyName: companyInfo.name_en,
-      vatNumber: companyInfo.vat_number,
+      companyName: companyInfo.name_en, // Real company name from settings
+      vatNumber: companyInfo.vat_number, // Real VAT number from settings
+      commercialRegistration: companyInfo.commercial_registration, // Real CR number from settings
       timestamp: new Date().toISOString(),
       total: quote.total_amount.toFixed(2),
       vatAmount: quote.tax_amount.toFixed(2),
@@ -440,13 +476,19 @@ export class ZatcaPdfGenerator {
     this.doc.setFontSize(this.fonts.small.size);
     this.doc.setTextColor(...this.colors.secondary);
 
-    // ZATCA compliance statement
+    // Company info in footer
+    this.doc.text(companyInfo.name_en, this.margin, footerY);
+    this.doc.text(`VAT: ${companyInfo.vat_number} | CR: ${companyInfo.commercial_registration}`, this.margin, footerY + 12);
+
+    // ZATCA compliance statement - centered
     const complianceText = 'This quote complies with ZATCA regulations';
     this.doc.text(complianceText, this.pageWidth / 2, footerY, { align: 'center' });
-    
+    this.doc.text('Generated from real company settings', this.pageWidth / 2, footerY + 12, { align: 'center', maxWidth: 200 });
+
     // Page number
     const pageInfo = `Page 1 of 1`;
-    this.doc.text(pageInfo, this.pageWidth / 2, footerY + 15, { align: 'center' });
+    this.doc.text(pageInfo, this.pageWidth - this.margin, footerY, { align: 'right' });
+    this.doc.text(new Date().toLocaleDateString('en-GB'), this.pageWidth - this.margin, footerY + 12, { align: 'right' });
   }
 
   /**
@@ -484,7 +526,7 @@ export class ZatcaPdfGenerator {
   }
 }
 
-// Default company info for Saudi Arabia
+// Default company info for Saudi Arabia (fallback)
 export const DEFAULT_COMPANY_INFO: CompanyInfo = {
   name_en: 'ServicePro Professional Services',
   vat_number: '300000000000003',
@@ -495,13 +537,52 @@ export const DEFAULT_COMPANY_INFO: CompanyInfo = {
 };
 
 /**
- * Main function to generate ZATCA-compliant quote PDF
+ * Convert CompanySettings to CompanyInfo format for PDF generation
+ */
+export const convertCompanySettingsToCompanyInfo = (settings: CompanySettings): CompanyInfo => {
+  return {
+    name_en: settings.company_name_en || 'ServicePro',
+    vat_number: settings.vat_number || '300000000000003',
+    commercial_registration: settings.commercial_registration || '1010000000',
+    address_en: settings.address_en || 'Riyadh, Saudi Arabia',
+    city_en: settings.city || 'Riyadh',
+    postal_code: settings.postal_code || '11564',
+    logo_url: settings.logo_url,
+    phone: settings.phone,
+    email: settings.email
+  };
+};
+
+/**
+ * Get company info from settings with fallback to defaults
+ */
+export const getCompanyInfoForPdf = async (): Promise<CompanyInfo> => {
+  try {
+    const settings = await getCompanySettings();
+    if (settings) {
+      return convertCompanySettingsToCompanyInfo(settings);
+    }
+    return DEFAULT_COMPANY_INFO;
+  } catch (error) {
+    console.error('Failed to load company settings for PDF, using defaults:', error);
+    return DEFAULT_COMPANY_INFO;
+  }
+};
+
+/**
+ * Generate ZATCA-compliant quote PDF with real company data
+ * Now supports all company contact info, logo, and VAT registration details
+ * automatically loaded from user settings (no more hardcoded fallback values)
  */
 export const generateZatcaQuotePdf = async (
   quote: Quote,
-  companyInfo: CompanyInfo = DEFAULT_COMPANY_INFO,
+  companyInfo?: CompanyInfo,
   options: ZatcaPdfOptions = { language: 'en', includeQr: true, includeWatermark: false }
 ): Promise<string> => {
   const generator = new ZatcaPdfGenerator();
-  return await generator.generateQuotePdf(quote, companyInfo, options);
+  
+  // Use provided company info or load from settings
+  const finalCompanyInfo = companyInfo || await getCompanyInfoForPdf();
+  
+  return await generator.generateQuotePdf(quote, finalCompanyInfo, options);
 };

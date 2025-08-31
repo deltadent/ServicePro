@@ -16,11 +16,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  MoreVertical, 
+import {
+  Plus,
+  Search,
+  Filter,
+  MoreVertical,
   Eye,
   Edit,
   Send,
@@ -29,16 +29,18 @@ import {
   XCircle,
   Clock,
   DollarSign,
-  Download
+  Download,
+  Trash2
 } from "lucide-react";
 import { DataTable } from "@/components/ui/DataTable";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { 
-  fetchQuotesList, 
-  sendQuote, 
+import {
+  fetchQuotesList,
+  sendQuote,
   convertQuoteToJob,
-  getQuoteStatistics 
+  getQuoteStatistics,
+  deleteQuote
 } from "@/lib/quotesRepo";
 import { 
   Quote, 
@@ -50,7 +52,6 @@ import { format } from "date-fns";
 import QuoteCreationDialog from "./QuoteCreationDialog";
 import QuotePreview from "./QuotePreview";
 import QuoteShareDialog from "./QuoteShareDialog";
-import { generateZatcaQuotePdf, DEFAULT_COMPANY_INFO } from "@/lib/utils/zatcaPdfGenerator";
 
 const QuoteManagement = () => {
   const { toast } = useToast();
@@ -182,35 +183,33 @@ const QuoteManagement = () => {
     setShowPreview(true);
   };
 
-  const handleDownloadPdf = async (quote: Quote) => {
-    try {
-      const pdfDataUri = await generateZatcaQuotePdf(quote, DEFAULT_COMPANY_INFO, {
-        language: 'en',
-        includeQr: true,
-        includeWatermark: false
-      });
-      
-      // Create download link
-      const link = document.createElement('a');
-      link.href = pdfDataUri;
-      link.download = `Quote_${quote.quote_number}_ZATCA.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      toast({
-        title: "PDF Downloaded",
-        description: `ZATCA-compliant quote ${quote.quote_number} downloaded successfully`,
-      });
-    } catch (error) {
-      console.error('Failed to generate PDF:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate PDF",
-        variant: "destructive"
-      });
+  const handleDeleteQuote = async (quote: Quote) => {
+    if (window.confirm(`Are you sure you want to delete quote ${quote.quote_number}? This action cannot be undone.`)) {
+      try {
+        // Delete quote from database
+        await deleteQuote(quote.id);
+
+        // Remove quote from local state
+        setQuotes(quotes.filter(q => q.id !== quote.id));
+
+        toast({
+          title: "Quote Deleted",
+          description: `Quote ${quote.quote_number} has been deleted successfully`,
+        });
+
+        // Refresh statistics
+        loadStatistics();
+      } catch (error) {
+        console.error('Failed to delete quote:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete quote",
+          variant: "destructive"
+        });
+      }
     }
   };
+
 
   // Status badge styling
   const getStatusBadge = (status: QuoteStatus) => {
@@ -324,10 +323,6 @@ const QuoteManagement = () => {
                 <Eye className="w-4 h-4 mr-2" />
                 Preview
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleDownloadPdf(quote)}>
-                <Download className="w-4 h-4 mr-2" />
-                Download ZATCA PDF
-              </DropdownMenuItem>
               
               {quote.status === 'draft' && (
                 <>
@@ -351,6 +346,14 @@ const QuoteManagement = () => {
                   Convert to Job
                 </DropdownMenuItem>
               )}
+
+              <DropdownMenuItem
+                onClick={() => handleDeleteQuote(quote)}
+                className="text-red-600 focus:text-red-600"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Quote
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         );

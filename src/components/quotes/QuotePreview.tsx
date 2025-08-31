@@ -32,7 +32,9 @@ import { useDevice } from "@/hooks/use-device";
 import { Quote, QuoteItemType } from "@/lib/types/quotes";
 import { sendQuote } from "@/lib/quotesRepo";
 import { format } from "date-fns";
-import { generateZatcaQuotePdf, DEFAULT_COMPANY_INFO } from "@/lib/utils/zatcaPdfGenerator";
+import { PdfGeneratorFactory } from "@/lib/utils/pdfGeneratorFactory";
+import { getCompanyBranding } from "@/lib/companyRepo";
+import { useEffect } from 'react';
 
 interface QuotePreviewProps {
   quote: Quote;
@@ -52,6 +54,23 @@ const QuotePreview = ({
   const { toast } = useToast();
   const { isMobile } = useDevice();
   const [loading, setLoading] = useState(false);
+  const [companyBranding, setCompanyBranding] = useState<any>(null);
+
+  // Load company branding on mount
+  useEffect(() => {
+    const loadBranding = async () => {
+      try {
+        const branding = await getCompanyBranding();
+        setCompanyBranding(branding);
+      } catch (error) {
+        console.error('Failed to load company branding:', error);
+      }
+    };
+
+    if (isOpen) {
+      loadBranding();
+    }
+  }, [isOpen]);
 
   const handleSendQuote = async () => {
     try {
@@ -78,10 +97,10 @@ const QuotePreview = ({
   const handleDownloadPdf = async () => {
     try {
       setLoading(true);
-      const pdfDataUri = await generateZatcaQuotePdf(quote, DEFAULT_COMPANY_INFO, {
-        language: 'both',
-        includeQr: true,
-        includeWatermark: false
+      // Use template-aware PDF generator that respects user's settings
+      const pdfDataUri = await PdfGeneratorFactory.generateQuotePdf(quote, {
+        language: 'en',
+        includeQr: true
       });
       
       // Create download link
@@ -227,24 +246,27 @@ const QuotePreview = ({
                 <CardTitle className="text-lg">From</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <div className="font-semibold text-lg">ServicePro</div>
+                <div className="font-semibold text-lg">{companyBranding?.company_name_en || 'ServicePro'}</div>
                 <div className="text-sm text-gray-600 space-y-1">
-                  <div>Professional Field Services</div>
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-4 h-4" />
-                    (555) 123-4567
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Mail className="w-4 h-4" />
-                    info@servicepro.com
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <MapPin className="w-4 h-4 mt-0.5" />
-                    <div>
-                      123 Business St<br />
-                      City, ST 12345
+                  <div>{companyBranding?.tagline_en || 'Professional Field Services'}</div>
+                  {companyBranding?.phone && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4" />
+                      {companyBranding.phone}
                     </div>
-                  </div>
+                  )}
+                  {companyBranding?.email && (
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4" />
+                      {companyBranding.email}
+                    </div>
+                  )}
+                  {companyBranding?.address && (
+                    <div className="flex items-start gap-2">
+                      <MapPin className="w-4 h-4 mt-0.5" />
+                      <div>{companyBranding.address}</div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -539,7 +561,7 @@ const QuotePreview = ({
 
           {/* Footer */}
           <div className="text-center text-sm text-gray-500 pt-6 border-t">
-            <p>Thank you for choosing ServicePro</p>
+            <p>Thank you for choosing {companyBranding?.company_name_en || 'ServicePro'}</p>
             <p>This quote is valid for {quote.valid_until ? `until ${format(new Date(quote.valid_until), 'MMMM d, yyyy')}` : '30 days'}</p>
           </div>
         </div>

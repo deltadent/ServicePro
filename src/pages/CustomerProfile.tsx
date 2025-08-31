@@ -11,6 +11,7 @@ import { ArrowLeft, Phone, Mail, MessageSquare, Clock, Wrench, TrendingUp, Targe
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/hooks/use-toast";
 import { Customer } from '@/components/CustomerColumns';
+import { SaudiCustomerDisplay } from '@/components/display/SaudiCustomerDisplay';
 
 interface CustomerProfileProps {
   id?: string;
@@ -183,6 +184,7 @@ const CustomerProfile = ({ id: propId }: CustomerProfileProps = {}) => {
             <div className="flex justify-between items-center">
               <TabsList>
                 <TabsTrigger value="profile">Profile Details</TabsTrigger>
+                <TabsTrigger value="saudi">Saudi Arabia</TabsTrigger>
                 <TabsTrigger value="jobs">Recent Jobs</TabsTrigger>
               </TabsList>
               <div className="flex items-center gap-4">
@@ -310,6 +312,10 @@ const CustomerProfile = ({ id: propId }: CustomerProfileProps = {}) => {
                 </Badge>
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="saudi" className="space-y-6">
+            <SaudiCustomerDisplay customer={customer} showSensitiveData={false} />
           </TabsContent>
 
           <TabsContent value="jobs" className="space-y-6">

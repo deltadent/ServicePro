@@ -19,6 +19,8 @@ import { getColumns, Customer } from "./CustomerColumns";
 import CustomerDetails from "./CustomerDetails";
 import CustomerImportDialog from "./CustomerImportDialog";
 import { exportCustomersToCSV, exportCustomersToExcel } from '@/lib/customersRepo';
+import { SAUDI_REGIONS, BUSINESS_TYPES } from '@/lib/types/saudi';
+import { validateCommercialRegistration, validateSaudiVatNumber, validateSaudiId } from '@/lib/utils/saudi';
 
 const CustomerManagementFull = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -29,6 +31,8 @@ const CustomerManagementFull = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [communicationFilter, setCommunicationFilter] = useState<'all' | 'whatsapp' | 'email'>('all');
+  const [regionFilter, setRegionFilter] = useState<string>('all');
+  const [businessTypeFilter, setBusinessTypeFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'all' | 'last30days' | 'yeartodate'>('all');
   const [customerStats, setCustomerStats] = useState({
     last30Days: { current: 0, previous: 0, percentage: 0 },
@@ -55,7 +59,20 @@ const CustomerManagementFull = () => {
     email_enabled: true,
     whatsapp_enabled: false,
     tags: [],
-    country: ''
+    country: '',
+    // Saudi market specific fields
+    vat_number: '',
+    commercial_registration: '',
+    business_type: null as 'individual' | 'establishment' | 'company' | 'non_profit' | 'government' | null,
+    saudi_id: '',
+    arabic_name: '',
+    arabic_address: '',
+    tax_exempt: false,
+    customer_category: null as 'b2b' | 'b2c' | 'vip' | 'government' | null,
+    payment_terms_days: 30,
+    credit_limit: 0,
+    preferred_language: 'en' as 'en' | 'ar',
+    region: ''
   });
   const { toast } = useToast();
 
@@ -148,6 +165,43 @@ const CustomerManagementFull = () => {
     e.preventDefault();
 
     try {
+      // Validate Saudi-specific fields before submission
+      if (formData.commercial_registration && formData.commercial_registration.trim()) {
+        const crValidation = validateCommercialRegistration(formData.commercial_registration);
+        if (!crValidation.isValid) {
+          toast({
+            title: "Validation Error",
+            description: crValidation.message,
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+
+      if (formData.vat_number && formData.vat_number.trim()) {
+        const vatValidation = validateSaudiVatNumber(formData.vat_number);
+        if (!vatValidation.isValid) {
+          toast({
+            title: "Validation Error",
+            description: vatValidation.message,
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+
+      if (formData.saudi_id && formData.saudi_id.trim()) {
+        const idValidation = validateSaudiId(formData.saudi_id);
+        if (!idValidation.isValid) {
+          toast({
+            title: "Validation Error",
+            description: idValidation.message,
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+
       // Construct the name field properly based on person/company type
       let submitData = { ...formData };
 
@@ -231,7 +285,20 @@ const CustomerManagementFull = () => {
       email_enabled: customer.email_enabled !== undefined ? customer.email_enabled : true,
       whatsapp_enabled: customer.whatsapp_enabled !== undefined ? customer.whatsapp_enabled : false,
       tags: customer.tags || [],
-      country: customer.country || ''
+      country: customer.country || '',
+      // Saudi market specific fields
+      vat_number: customer.vat_number || '',
+      commercial_registration: customer.commercial_registration || '',
+      business_type: customer.business_type || null,
+      saudi_id: customer.saudi_id || '',
+      arabic_name: customer.arabic_name || '',
+      arabic_address: customer.arabic_address || '',
+      tax_exempt: customer.tax_exempt || false,
+      customer_category: customer.customer_category || null,
+      payment_terms_days: customer.payment_terms_days || 30,
+      credit_limit: customer.credit_limit || 0,
+      preferred_language: customer.preferred_language || 'en',
+      region: customer.region || ''
     });
     setSelectedCustomer(customer);
   };
@@ -313,7 +380,20 @@ const CustomerManagementFull = () => {
       email_enabled: true,
       whatsapp_enabled: false,
       tags: [],
-      country: ''
+      country: '',
+      // Saudi market specific fields
+      vat_number: '',
+      commercial_registration: '',
+      business_type: null as 'individual' | 'establishment' | 'company' | 'non_profit' | 'government' | null,
+      saudi_id: '',
+      arabic_name: '',
+      arabic_address: '',
+      tax_exempt: false,
+      customer_category: null as 'b2b' | 'b2c' | 'vip' | 'government' | null,
+      payment_terms_days: 30,
+      credit_limit: 0,
+      preferred_language: 'en' as 'en' | 'ar',
+      region: ''
     });
   };
 
@@ -350,14 +430,25 @@ const CustomerManagementFull = () => {
       (customer.first_name && customer.first_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (customer.last_name && customer.last_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (customer.company_name && customer.company_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (customer.address && customer.address.toLowerCase().includes(searchTerm.toLowerCase()));
+      (customer.address && customer.address.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (customer.arabic_name && customer.arabic_name.includes(searchTerm)) ||
+      (customer.vat_number && customer.vat_number.includes(searchTerm)) ||
+      (customer.commercial_registration && customer.commercial_registration.includes(searchTerm));
 
     // Communication filter
     const matchesCommunication = communicationFilter === 'all' ||
       (communicationFilter === 'whatsapp' && customer.whatsapp_enabled) ||
       (communicationFilter === 'email' && customer.email_enabled);
 
-    return matchesSearch && matchesCommunication;
+    // Region filter
+    const matchesRegion = regionFilter === 'all' ||
+      customer.region === regionFilter;
+
+    // Business type filter
+    const matchesBusinessType = businessTypeFilter === 'all' ||
+      customer.business_type === businessTypeFilter;
+
+    return matchesSearch && matchesCommunication && matchesRegion && matchesBusinessType;
   });
 
   const handleExportCSV = async () => {
@@ -548,23 +639,53 @@ const CustomerManagementFull = () => {
           </div>
 
           {/* Search and Filter Section */}
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <Input
               placeholder="Search customers..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-sm"
             />
-            <Select value={communicationFilter} onValueChange={(value: 'all' | 'whatsapp' | 'email') => setCommunicationFilter(value)}>
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Communication</SelectItem>
-                <SelectItem value="whatsapp">WhatsApp Enabled</SelectItem>
-                <SelectItem value="email">Email Enabled</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex flex-wrap gap-2">
+              <Select value={communicationFilter} onValueChange={(value: 'all' | 'whatsapp' | 'email') => setCommunicationFilter(value)}>
+                <SelectTrigger className="w-44">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Communication</SelectItem>
+                  <SelectItem value="whatsapp">WhatsApp Enabled</SelectItem>
+                  <SelectItem value="email">Email Enabled</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Select value={regionFilter} onValueChange={(value: string) => setRegionFilter(value)}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="All Regions" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Regions</SelectItem>
+                  {SAUDI_REGIONS.map((region) => (
+                    <SelectItem key={region.code} value={region.name_en}>
+                      {region.name_en}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <Select value={businessTypeFilter} onValueChange={(value: string) => setBusinessTypeFilter(value)}>
+                <SelectTrigger className="w-44">
+                  <SelectValue placeholder="All Business Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Business Types</SelectItem>
+                  {BUSINESS_TYPES.map((type) => (
+                    <SelectItem key={type.code} value={type.code}>
+                      {type.name_en}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <Tabs defaultValue="active">

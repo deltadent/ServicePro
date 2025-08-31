@@ -76,6 +76,19 @@ export interface Customer {
   whatsapp_enabled: boolean;
   tags?: string[] | null;
   country?: string | null;
+  // Saudi market specific fields
+  vat_number?: string | null;
+  commercial_registration?: string | null;
+  business_type?: 'individual' | 'establishment' | 'company' | 'non_profit' | 'government' | null;
+  saudi_id?: string | null;
+  arabic_name?: string | null;
+  arabic_address?: string | null;
+  tax_exempt?: boolean;
+  customer_category?: 'b2b' | 'b2c' | 'vip' | 'government' | null;
+  payment_terms_days?: number;
+  credit_limit?: number;
+  preferred_language?: 'en' | 'ar';
+  region?: string | null;
 }
 
 export interface MetaData {

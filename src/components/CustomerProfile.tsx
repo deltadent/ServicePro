@@ -9,10 +9,14 @@ import { Switch } from "@/components/ui/switch";
 import { geocodeAddress } from '@/utils/geocode';
 import { normalizeToE164Saudi, formatPhoneForDisplay } from '@/lib/phone';
 import { useState, useEffect } from 'react';
+import { SaudiCustomerFieldsSimple } from '@/components/forms/SaudiCustomerFieldsSimple';
+import { validateCustomerRequiredFields } from '@/lib/utils/saudi';
+import type { Customer } from '@/components/CustomerColumns';
 
 const CustomerProfile = ({ formData, setFormData, handleSubmit, onCancel }) => {
   const [phoneFeedback, setPhoneFeedback] = useState<{mobile?: string, work?: string}>({});
   const [isPerson, setIsPerson] = useState(!formData.company_name && (formData.first_name || formData.last_name));
+  const [saudiValidationErrors, setSaudiValidationErrors] = useState<string[]>([]);
 
   // Determine if this is a person or company based on filled fields
   useEffect(() => {
@@ -20,6 +24,19 @@ const CustomerProfile = ({ formData, setFormData, handleSubmit, onCancel }) => {
     const hasCompanyField = formData.company_name;
     setIsPerson(hasPersonFields || (!hasCompanyField && !hasPersonFields));
   }, [formData.first_name, formData.last_name, formData.company_name]);
+
+  // Validate Saudi fields when customer type or business type changes
+  useEffect(() => {
+    const errors = validateCustomerRequiredFields({
+      customer_type: formData.customer_type,
+      business_type: formData.business_type,
+      vat_number: formData.vat_number,
+      commercial_registration: formData.commercial_registration,
+      saudi_id: formData.saudi_id,
+    });
+    setSaudiValidationErrors(errors);
+  }, [formData.customer_type, formData.business_type, formData.vat_number, formData.commercial_registration, formData.saudi_id]);
+
 
   const handlePhoneBlur = (field: 'phone_mobile' | 'phone_work', value: string) => {
     if (!value.trim()) {
@@ -303,6 +320,29 @@ const CustomerProfile = ({ formData, setFormData, handleSubmit, onCancel }) => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Saudi Market Fields */}
+          <SaudiCustomerFieldsSimple 
+            formData={formData}
+            setFormData={setFormData}
+            customerType={formData.customer_type}
+          />
+
+          {/* Saudi Validation Errors */}
+          {saudiValidationErrors.length > 0 && (
+            <Card className="border-red-200 bg-red-50">
+              <CardContent className="pt-6">
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-red-800">Required Saudi Information:</h4>
+                  <ul className="text-sm text-red-700 space-y-1">
+                    {saudiValidationErrors.map((error, index) => (
+                      <li key={index}>• {error}</li>
+                    ))}
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Form Actions */}
           <div className="flex justify-end space-x-2">

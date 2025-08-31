@@ -2,6 +2,7 @@ import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import { Customer } from '@/components/CustomerColumns';
 import { normalizeToE164Saudi } from '@/lib/phone';
+import { validateCommercialRegistration, validateSaudiVatNumber, validateSaudiId } from '@/lib/utils/saudi';
 
 export interface ImportResult {
   success: boolean;
@@ -300,6 +301,28 @@ export function validateCustomerData(customers: Partial<Customer>[]): {
     // Customer type validation
     if (customer.customer_type && !['residential', 'commercial'].includes(customer.customer_type)) {
       errors.push('Customer type must be either "residential" or "commercial"');
+    }
+
+    // Saudi field validation
+    if (customer.commercial_registration && customer.commercial_registration.trim()) {
+      const crValidation = validateCommercialRegistration(customer.commercial_registration);
+      if (!crValidation.isValid) {
+        errors.push(crValidation.message);
+      }
+    }
+
+    if (customer.vat_number && customer.vat_number.trim()) {
+      const vatValidation = validateSaudiVatNumber(customer.vat_number);
+      if (!vatValidation.isValid) {
+        errors.push(vatValidation.message);
+      }
+    }
+
+    if (customer.saudi_id && customer.saudi_id.trim()) {
+      const idValidation = validateSaudiId(customer.saudi_id);
+      if (!idValidation.isValid) {
+        errors.push(idValidation.message);
+      }
     }
 
     if (errors.length === 0) {

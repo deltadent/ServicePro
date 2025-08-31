@@ -22,6 +22,7 @@ import { getPublicQuote, approveQuote, declineQuote } from "@/lib/quotesRepo";
 import { Quote } from "@/lib/types/quotes";
 import { format } from "date-fns";
 import QuoteSignaturePad from "@/components/quotes/QuoteSignaturePad";
+import { getCompanyBranding, getCompanySettings } from "@/lib/companyRepo";
 
 const CustomerQuoteView = () => {
   const { quoteId } = useParams<{ quoteId: string }>();
@@ -36,12 +37,27 @@ const CustomerQuoteView = () => {
   const [showSignaturePad, setShowSignaturePad] = useState(false);
   const [declineReason, setDeclineReason] = useState('');
   const [showDeclineForm, setShowDeclineForm] = useState(false);
+  const [companyBranding, setCompanyBranding] = useState<any>(null);
+  const [companySettings, setCompanySettings] = useState<any>(null);
 
   useEffect(() => {
     if (quoteId) {
       loadQuote(quoteId);
     }
+    loadCompanyBranding();
   }, [quoteId]);
+
+  const loadCompanyBranding = async () => {
+    try {
+      const branding = await getCompanyBranding();
+      setCompanyBranding(branding);
+      
+      const settings = await getCompanySettings();
+      setCompanySettings(settings);
+    } catch (error) {
+      console.error('Failed to load company data:', error);
+    }
+  };
 
   const loadQuote = async (id: string) => {
     try {
@@ -283,26 +299,26 @@ const CustomerQuoteView = () => {
         {/* Company Info */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>From ServicePro</CardTitle>
+            <CardTitle>From {companyBranding?.company_name_en || 'ServicePro'}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm">
                   <Phone className="w-4 h-4 text-gray-400" />
-                  <span>(555) 123-4567</span>
+                  <span>{companySettings?.phone || '+966 11 234 5678'}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <Mail className="w-4 h-4 text-gray-400" />
-                  <span>info@servicepro.com</span>
+                  <span>{companySettings?.email || 'info@servicepro.sa'}</span>
                 </div>
               </div>
               <div>
                 <div className="flex items-start gap-2 text-sm">
                   <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
                   <div>
-                    123 Business Street<br />
-                    Business City, ST 12345
+                    {companySettings?.address_en || '123 King Fahd Road'}<br />
+                    {companySettings?.city || 'Riyadh'}, {companySettings?.region || 'Riyadh'} {companySettings?.postal_code || '11564'}
                   </div>
                 </div>
               </div>

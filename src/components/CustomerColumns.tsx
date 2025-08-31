@@ -15,6 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Edit, Archive, Trash2 } from "lucide-react"
 import { getCustomerDisplayName, whatsAppLink } from "@/lib/communication"
+import { getCustomerDisplayNameArabic, formatBilingualText } from "@/lib/utils/saudi"
 
 // This type is used to define the shape of our data.
 // You can use a Zod schema here if you want.
@@ -42,6 +43,19 @@ export type Customer = {
   whatsapp_enabled: boolean
   tags?: string[] | null
   country?: string | null
+  // Saudi market specific fields
+  vat_number?: string | null
+  commercial_registration?: string | null
+  business_type?: 'individual' | 'establishment' | 'company' | 'non_profit' | 'government' | null
+  saudi_id?: string | null
+  arabic_name?: string | null
+  arabic_address?: string | null
+  tax_exempt?: boolean
+  customer_category?: 'b2b' | 'b2c' | 'vip' | 'government' | null
+  payment_terms_days?: number
+  credit_limit?: number
+  preferred_language?: 'en' | 'ar'
+  region?: string | null
 }
 
 export const getColumns = (
@@ -64,18 +78,28 @@ export const getColumns = (
     },
     cell: ({ row }) => {
       const customer = row.original
-      const displayName = getCustomerDisplayName(customer)
+      const displayName = getCustomerDisplayNameArabic(customer)
       return (
         <div className="space-y-1">
           <div className="font-medium">{displayName}</div>
-          <div className="flex gap-1">
-            {customer.whatsapp_enabled && (
+          <div className="flex gap-1 flex-wrap">
+            {customer.business_type && (
+              <Badge variant="outline" className="text-xs">
+                {customer.business_type}
+              </Badge>
+            )}
+            {customer.vat_number && (
               <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
+                VAT
+              </Badge>
+            )}
+            {customer.whatsapp_enabled && (
+              <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
                 WhatsApp
               </Badge>
             )}
             {customer.email_enabled && (
-              <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
+              <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-800">
                 Email
               </Badge>
             )}
@@ -87,6 +111,75 @@ export const getColumns = (
   {
     accessorKey: "customer_type",
     header: "Type",
+    cell: ({ row }) => {
+      const customer = row.original
+      return (
+        <div className="space-y-1">
+          <div className="capitalize font-medium">{customer.customer_type}</div>
+          {customer.region && (
+            <div className="text-xs text-muted-foreground">{customer.region}</div>
+          )}
+          {customer.customer_category && (
+            <Badge variant="outline" className="text-xs">
+              {customer.customer_category?.toUpperCase()}
+            </Badge>
+          )}
+        </div>
+      )
+    },
+  },
+  {
+    accessorKey: "saudi_info",
+    header: "Saudi Business Info",
+    cell: ({ row }) => {
+      const customer = row.original
+      if (customer.customer_type === 'residential') {
+        return (
+          <div className="text-sm text-muted-foreground">
+            {customer.saudi_id ? (
+              <div className="space-y-1">
+                <div className="text-xs">ID: {customer.saudi_id.substring(0, 4)}****</div>
+                {customer.preferred_language === 'ar' && (
+                  <Badge variant="secondary" className="text-xs">العربية</Badge>
+                )}
+              </div>
+            ) : (
+              'No Saudi info'
+            )}
+          </div>
+        )
+      }
+      
+      return (
+        <div className="space-y-1">
+          {customer.vat_number && (
+            <div className="text-xs font-mono">
+              VAT: {customer.vat_number.substring(0, 6)}***
+            </div>
+          )}
+          {customer.commercial_registration && (
+            <div className="text-xs font-mono">
+              CR: {customer.commercial_registration.substring(0, 4)}***
+            </div>
+          )}
+          {customer.saudi_id && (
+            <div className="text-xs font-mono">
+              ID: {customer.saudi_id.substring(0, 4)}***
+            </div>
+          )}
+          <div className="flex gap-1">
+            {customer.tax_exempt && (
+              <Badge variant="secondary" className="text-xs bg-yellow-100 text-yellow-800">
+                Tax Exempt
+              </Badge>
+            )}
+            {customer.preferred_language === 'ar' && (
+              <Badge variant="secondary" className="text-xs">العربية</Badge>
+            )}
+          </div>
+        </div>
+      )
+    },
   },
   {
     accessorKey: "phone_mobile",

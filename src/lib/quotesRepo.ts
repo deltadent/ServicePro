@@ -5,11 +5,11 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { dbService } from './db';
-import { 
-  Quote, 
-  QuoteItem, 
-  QuoteTemplate, 
-  CreateQuoteRequest, 
+import {
+  Quote,
+  QuoteItem,
+  QuoteTemplate,
+  CreateQuoteRequest,
   UpdateQuoteRequest,
   QuoteListOptions,
   QuoteListResponse,
@@ -21,6 +21,7 @@ import {
   UpdateQuoteTemplateRequest
 } from './types/quotes';
 import { nanoid } from 'nanoid';
+import { generateNextDocumentNumber } from './companyRepo';
 
 /**
  * Fetches quotes with offline-first strategy
@@ -227,6 +228,8 @@ export async function fetchQuoteDetail(quoteId: string): Promise<{ quote: Quote 
  * Creates a new quote
  */
 export async function createQuote(quoteData: CreateQuoteRequest): Promise<Quote> {
+  // Import needed functions
+  const { generateNextDocumentNumber } = await import('./companyRepo');
   try {
     // Get user authentication first
     const { data: authData, error: authError } = await supabase.auth.getUser();
@@ -245,10 +248,15 @@ export async function createQuote(quoteData: CreateQuoteRequest): Promise<Quote>
 
     console.log('Creating quote with user:', userId);
 
+    // Generate quote number using company settings
+    const quoteNumber = await generateNextDocumentNumber('quote');
+    console.log('Generated quote number:', quoteNumber);
+
     // First create the quote record
     const { data: quote, error: quoteError } = await supabase
       .from('quotes')
       .insert({
+        quote_number: quoteNumber,
         customer_id: quoteData.customer_id,
         template_id: quoteData.template_id,
         title: quoteData.title,
@@ -458,6 +466,31 @@ export async function sendQuote(quoteId: string): Promise<Quote> {
   return await updateQuote(quoteId, { 
     status: 'sent',
   });
+}
+
+/**
+ * Deletes a quote from the database
+ */
+export async function deleteQuote(quoteId: string): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('quotes')
+      .delete()
+      .eq('id', quoteId);
+
+    if (error) throw error;
+
+    // Also delete quote items (cascade delete should handle this in database)
+    await supabase
+      .from('quote_items')
+      .delete()
+      .eq('quote_id', quoteId);
+
+    console.log('Quote deleted successfully:', quoteId);
+  } catch (error) {
+    console.error('Failed to delete quote:', error);
+    throw error;
+  }
 }
 
 /**

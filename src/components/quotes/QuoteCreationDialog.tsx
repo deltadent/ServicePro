@@ -65,6 +65,11 @@ import {
   UpdateQuoteRequest,
 } from "@/lib/types/quotes";
 import { Customer } from "@/lib/db";
+import { DEFAULT_VAT_RATE, calculateVatAmount, generateZatcaQrData } from "@/lib/utils/saudi";
+import { getDefaultVatRate } from "@/lib/saudiRepo";
+import { getCompanySettings, generateNextDocumentNumber, getCompanyBranding, getCompanyTemplates } from "@/lib/companyRepo";
+import { VoiceInputField } from "@/components/voice/VoiceInputField";
+import { VoiceTextarea } from "@/components/voice/VoiceTextarea";
 
 // Form validation schema
 const quoteFormSchema = z.object({
@@ -109,8 +114,12 @@ const QuoteCreationDialog = ({
   // State
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [templates, setTemplates] = useState<QuoteTemplate[]>([]);
+  const [companyTemplates, setCompanyTemplates] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<QuoteTemplate | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [companySettings, setCompanySettings] = useState<any>(null);
+  const [companyBranding, setCompanyBranding] = useState<any>(null);
 
   // Form setup
   const form = useForm<FormData>({
@@ -123,7 +132,7 @@ const QuoteCreationDialog = ({
       valid_until: null,
       terms_and_conditions: '',
       notes: '',
-      tax_rate: 0.0825, // 8.25% default tax rate
+      tax_rate: DEFAULT_VAT_RATE, // 15% Saudi VAT rate
       discount_amount: 0,
       items: [{
         item_type: 'service',
@@ -145,11 +154,37 @@ const QuoteCreationDialog = ({
   useEffect(() => {
     loadCustomers();
     loadTemplates();
+    loadCompanyTemplates();
+    loadCompanySettings();
+    loadCompanyBranding();
     
     if (existingQuote) {
       populateExistingQuote();
     }
   }, [existingQuote]);
+
+  const loadCompanySettings = async () => {
+    try {
+      const settings = await getCompanySettings();
+      setCompanySettings(settings);
+      
+      // Update tax rate from company settings if no existing quote
+      if (settings && !existingQuote) {
+        form.setValue('tax_rate', settings.default_vat_rate);
+      }
+    } catch (error) {
+      console.error('Failed to load company settings:', error);
+    }
+  };
+
+  const loadCompanyBranding = async () => {
+    try {
+      const branding = await getCompanyBranding();
+      setCompanyBranding(branding);
+    } catch (error) {
+      console.error('Failed to load company branding:', error);
+    }
+  };
 
   // Load existing quote data
   const populateExistingQuote = () => {
@@ -202,6 +237,15 @@ const QuoteCreationDialog = ({
       setTemplates(templates);
     } catch (error) {
       console.error('Failed to load templates:', error);
+    }
+  };
+
+  const loadCompanyTemplates = async () => {
+    try {
+      const templates = await getCompanyTemplates('quote');
+      setCompanyTemplates(templates);
+    } catch (error) {
+      console.error('Failed to load company templates:', error);
     }
   };
 
@@ -273,6 +317,27 @@ const QuoteCreationDialog = ({
     append({ ...item });
   };
 
+  // Handle customer selection
+  const handleCustomerChange = (customerId: string) => {
+    const customer = customers.find(c => c.id === customerId);
+    setSelectedCustomer(customer || null);
+    
+    if (customer) {
+      // Adjust VAT rate based on customer's tax exempt status
+      if (customer.tax_exempt) {
+        form.setValue('tax_rate', 0);
+        toast({
+          title: "Tax Exempt Customer",
+          description: "VAT rate set to 0% for tax-exempt customer",
+        });
+      } else {
+        form.setValue('tax_rate', DEFAULT_VAT_RATE);
+      }
+    }
+    
+    form.setValue('customer_id', customerId);
+  };
+
   // Calculate totals
   const calculateTotals = () => {
     const items = form.watch('items');
@@ -325,7 +390,15 @@ const QuoteCreationDialog = ({
           description: `Quote has been updated successfully`,
         });
       } else {
-        // Create new quote
+        // Create new quote with ZATCA compliance using company settings
+        const zatcaQrData = selectedCustomer && companySettings ? generateZatcaQrData({
+          seller_name: companySettings.company_name_en || "ServicePro",
+          vat_number: companySettings.vat_number || "300123456789003",
+          invoice_date: new Date().toISOString(),
+          total_amount: total,
+          vat_amount: taxAmount
+        }) : '';
+
         const quoteData: CreateQuoteRequest = {
           customer_id: data.customer_id,
           template_id: data.template_id || undefined,
@@ -347,11 +420,11 @@ const QuoteCreationDialog = ({
           }))
         };
 
-        await createQuote(quoteData);
-        
+        const createdQuote = await createQuote(quoteData);
+
         toast({
           title: "Quote Created",
-          description: `Quote has been created successfully`,
+          description: `Quote ${createdQuote.quote_number} has been created successfully`,
         });
       }
 
@@ -403,7 +476,7 @@ const QuoteCreationDialog = ({
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Customer *</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
+                          <Select onValueChange={handleCustomerChange} value={field.value}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select a customer" />
@@ -417,6 +490,23 @@ const QuoteCreationDialog = ({
                                     <div className="text-sm text-muted-foreground">
                                       {customer.email || customer.phone_mobile}
                                     </div>
+                                    <div className="flex gap-1 mt-1">
+                                      {customer.business_type && (
+                                        <Badge variant="outline" className="text-xs">
+                                          {customer.business_type}
+                                        </Badge>
+                                      )}
+                                      {customer.vat_number && (
+                                        <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
+                                          VAT
+                                        </Badge>
+                                      )}
+                                      {customer.tax_exempt && (
+                                        <Badge variant="secondary" className="text-xs bg-yellow-100 text-yellow-800">
+                                          Tax Exempt
+                                        </Badge>
+                                      )}
+                                    </div>
                                   </div>
                                 </SelectItem>
                               ))}
@@ -426,6 +516,37 @@ const QuoteCreationDialog = ({
                         </FormItem>
                       )}
                     />
+
+                    {/* Saudi Customer Information */}
+                    {selectedCustomer && (selectedCustomer.vat_number || selectedCustomer.business_type || selectedCustomer.region) && (
+                      <Card className="bg-muted/50">
+                        <CardContent className="p-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant="outline" className="text-xs">Saudi Business Customer</Badge>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                            {selectedCustomer.business_type && (
+                              <div>
+                                <span className="text-muted-foreground">Type:</span> {selectedCustomer.business_type}
+                              </div>
+                            )}
+                            {selectedCustomer.region && (
+                              <div>
+                                <span className="text-muted-foreground">Region:</span> {selectedCustomer.region}
+                              </div>
+                            )}
+                            {selectedCustomer.vat_number && (
+                              <div>
+                                <span className="text-muted-foreground">VAT:</span> {selectedCustomer.vat_number.substring(0, 6)}***
+                              </div>
+                            )}
+                            <div>
+                              <span className="text-muted-foreground">VAT Rate:</span> {selectedCustomer.tax_exempt ? '0%' : '15%'}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
 
                     <FormField
                       control={form.control}
@@ -471,7 +592,13 @@ const QuoteCreationDialog = ({
                         <FormItem>
                           <FormLabel>Quote Title *</FormLabel>
                           <FormControl>
-                            <Input placeholder="e.g., HVAC System Installation" {...field} />
+                            <VoiceInputField 
+                              placeholder="e.g., HVAC System Installation" 
+                              enableVoice={true}
+                              enableTTS={true}
+                              voiceLanguage="auto"
+                              {...field} 
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -485,9 +612,12 @@ const QuoteCreationDialog = ({
                         <FormItem>
                           <FormLabel>Description</FormLabel>
                           <FormControl>
-                            <Textarea 
+                            <VoiceTextarea 
                               placeholder="Detailed description of the work to be performed..."
                               rows={3}
+                              enableVoice={true}
+                              enableTTS={true}
+                              voiceLanguage="auto"
                               {...field} 
                             />
                           </FormControl>
@@ -755,9 +885,12 @@ const QuoteCreationDialog = ({
                         <FormItem>
                           <FormLabel>Terms & Conditions</FormLabel>
                           <FormControl>
-                            <Textarea 
+                            <VoiceTextarea 
                               placeholder="Payment terms, warranty information, etc."
                               rows={4}
+                              enableVoice={true}
+                              enableTTS={true}
+                              voiceLanguage="auto"
                               {...field} 
                             />
                           </FormControl>
@@ -772,9 +905,12 @@ const QuoteCreationDialog = ({
                         <FormItem>
                           <FormLabel>Internal Notes</FormLabel>
                           <FormControl>
-                            <Textarea 
+                            <VoiceTextarea 
                               placeholder="Notes for internal use only..."
                               rows={3}
+                              enableVoice={true}
+                              enableTTS={true}
+                              voiceLanguage="auto"
                               {...field} 
                             />
                           </FormControl>
@@ -986,7 +1122,14 @@ const QuoteCreationDialog = ({
                                   <FormItem>
                                     <FormLabel>Name</FormLabel>
                                     <FormControl>
-                                      <Input placeholder="Item name" {...field} />
+                                      <VoiceInputField 
+                                        placeholder="Item name" 
+                                        enableVoice={true}
+                                        enableTTS={false}
+                                        voiceLanguage="auto"
+                                        voiceButtonVariant="inline"
+                                        {...field} 
+                                      />
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
@@ -1043,9 +1186,12 @@ const QuoteCreationDialog = ({
                                 <FormItem>
                                   <FormLabel>Description</FormLabel>
                                   <FormControl>
-                                    <Textarea 
+                                    <VoiceTextarea 
                                       placeholder="Additional details..."
                                       rows={2}
+                                      enableVoice={true}
+                                      enableTTS={false}
+                                      voiceLanguage="auto"
                                       {...field} 
                                     />
                                   </FormControl>

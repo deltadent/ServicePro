@@ -40,6 +40,7 @@ const Layout = ({ children }: LayoutProps) => {
     { icon: Package, label: 'Inventory', path: '/admin/inventory' },
     { icon: DollarSign, label: 'Financial', path: '/admin/financial' },
     { icon: BarChart3, label: 'Reports', path: '/admin/reports' },
+    { icon: Settings, label: 'Settings', path: '/admin/settings' },
   ];
 
   const workerMenuItems = [
