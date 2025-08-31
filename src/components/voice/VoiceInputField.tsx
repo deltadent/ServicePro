@@ -54,8 +54,11 @@ export const VoiceInputField = forwardRef<HTMLInputElement, VoiceInputFieldProps
     };
 
     const handleVoiceTranscript = (transcript: string) => {
+      console.log('[VOICE-FIELD] transcript received:', transcript);
       const currentValue = (value as string) || '';
       const newValue = currentValue + (currentValue ? ' ' : '') + transcript;
+      console.log('[VOICE-FIELD] currentValue:', currentValue);
+      console.log('[VOICE-FIELD] newValue:', newValue);
       
       // Update the input value
       if (inputRef.current) {
@@ -145,7 +148,13 @@ export const VoiceInputField = forwardRef<HTMLInputElement, VoiceInputFieldProps
         )}
         
         {enableVoice && (
-          <Popover open={showVoicePopover} onOpenChange={setShowVoicePopover}>
+          <Popover
+            open={showVoicePopover}
+            onOpenChange={(open) => {
+              console.log('[VOICE-FIELD] Popover state changed:', open);
+              setShowVoicePopover(open);
+            }}
+          >
             <PopoverTrigger asChild>
               <Button
                 type="button"
@@ -154,6 +163,9 @@ export const VoiceInputField = forwardRef<HTMLInputElement, VoiceInputFieldProps
                 disabled={disabled}
                 className="h-6 w-6 p-0"
                 title="Voice input"
+                onClick={() => {
+                  console.log('[VOICE-FIELD] Mic button clicked, showPopover:', !showVoicePopover);
+                }}
               >
                 <Mic className="h-3 w-3" />
               </Button>

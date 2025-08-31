@@ -68,8 +68,6 @@ import { Customer } from "@/lib/db";
 import { DEFAULT_VAT_RATE, calculateVatAmount, generateZatcaQrData } from "@/lib/utils/saudi";
 import { getDefaultVatRate } from "@/lib/saudiRepo";
 import { getCompanySettings, generateNextDocumentNumber, getCompanyBranding, getCompanyTemplates } from "@/lib/companyRepo";
-import { VoiceInputField } from "@/components/voice/VoiceInputField";
-import { VoiceTextarea } from "@/components/voice/VoiceTextarea";
 
 // Form validation schema
 const quoteFormSchema = z.object({
@@ -592,14 +590,11 @@ const QuoteCreationDialog = ({
                         <FormItem>
                           <FormLabel>Quote Title *</FormLabel>
                           <FormControl>
-                            <VoiceInputField 
-                              placeholder="e.g., HVAC System Installation" 
-                              enableVoice={true}
-                              enableTTS={true}
-                              voiceLanguage="auto"
-                              {...field} 
-                            />
-                          </FormControl>
+                           <Input
+                             placeholder="e.g., HVAC System Installation"
+                             {...field}
+                           />
+                         </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -612,13 +607,10 @@ const QuoteCreationDialog = ({
                         <FormItem>
                           <FormLabel>Description</FormLabel>
                           <FormControl>
-                            <VoiceTextarea 
+                            <Textarea
                               placeholder="Detailed description of the work to be performed..."
                               rows={3}
-                              enableVoice={true}
-                              enableTTS={true}
-                              voiceLanguage="auto"
-                              {...field} 
+                              {...field}
                             />
                           </FormControl>
                           <FormMessage />
@@ -885,13 +877,10 @@ const QuoteCreationDialog = ({
                         <FormItem>
                           <FormLabel>Terms & Conditions</FormLabel>
                           <FormControl>
-                            <VoiceTextarea 
+                            <Textarea
                               placeholder="Payment terms, warranty information, etc."
                               rows={4}
-                              enableVoice={true}
-                              enableTTS={true}
-                              voiceLanguage="auto"
-                              {...field} 
+                              {...field}
                             />
                           </FormControl>
                         </FormItem>
@@ -905,13 +894,10 @@ const QuoteCreationDialog = ({
                         <FormItem>
                           <FormLabel>Internal Notes</FormLabel>
                           <FormControl>
-                            <VoiceTextarea 
+                            <Textarea
                               placeholder="Notes for internal use only..."
                               rows={3}
-                              enableVoice={true}
-                              enableTTS={true}
-                              voiceLanguage="auto"
-                              {...field} 
+                              {...field}
                             />
                           </FormControl>
                         </FormItem>
@@ -1122,13 +1108,9 @@ const QuoteCreationDialog = ({
                                   <FormItem>
                                     <FormLabel>Name</FormLabel>
                                     <FormControl>
-                                      <VoiceInputField 
-                                        placeholder="Item name" 
-                                        enableVoice={true}
-                                        enableTTS={false}
-                                        voiceLanguage="auto"
-                                        voiceButtonVariant="inline"
-                                        {...field} 
+                                      <Input
+                                        placeholder="Item name"
+                                        {...field}
                                       />
                                     </FormControl>
                                     <FormMessage />
@@ -1186,13 +1168,10 @@ const QuoteCreationDialog = ({
                                 <FormItem>
                                   <FormLabel>Description</FormLabel>
                                   <FormControl>
-                                    <VoiceTextarea 
+                                    <Textarea
                                       placeholder="Additional details..."
                                       rows={2}
-                                      enableVoice={true}
-                                      enableTTS={false}
-                                      voiceLanguage="auto"
-                                      {...field} 
+                                      {...field}
                                     />
                                   </FormControl>
                                 </FormItem>

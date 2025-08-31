@@ -86,23 +86,30 @@ export function VoiceInput({
 
   // Check for speech recognition support
   useEffect(() => {
+    console.log('[VOICE] Checking speech recognition support...');
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
+    console.log('[VOICE] SpeechRecognition API available:', !!SpeechRecognition);
+    console.log('[VOICE] HTTPS/Secure context:', window.location.protocol === 'https:' || window.location.hostname === 'localhost');
+    console.log('[VOICE] User agent:', navigator.userAgent);
+
     if (SpeechRecognition) {
       setIsSupported(true);
-      
+      console.log('[VOICE] ✓ Speech recognition is supported');
+
       // Initialize recognition
       const recognition = new SpeechRecognition();
       recognition.continuous = continuous;
       recognition.interimResults = true;
       recognition.maxAlternatives = 3;
-      
+
       // Set initial language
-      const initialLang = language === 'auto' ? 
-        (navigator.language.startsWith('ar') ? 'ar-SA' : 'en-US') : 
+      const initialLang = language === 'auto' ?
+        (navigator.language.startsWith('ar') ? 'ar-SA' : 'en-US') :
         language;
       recognition.lang = initialLang;
       setCurrentLanguage(initialLang);
+      console.log('[VOICE] ✓ Initialized with language:', initialLang);
 
       // Event handlers
       recognition.onstart = () => {
@@ -124,11 +131,13 @@ export function VoiceInput({
       };
 
       recognition.onerror = (event: any) => {
+        console.log('[VOICE] ❌ Speech recognition error:', event.error, event);
+
         setIsListening(false);
         setInterimTranscript('');
-        
+
         let errorMessage = 'Voice recognition error occurred';
-        
+
         switch (event.error) {
           case 'no-speech':
             errorMessage = 'No speech detected. Please try again.';
@@ -146,6 +155,8 @@ export function VoiceInput({
             errorMessage = `Language ${currentLanguage} is not supported.`;
             break;
         }
+
+        console.log('[VOICE] ❌ Error message:', errorMessage);
         
         if (onError) {
           onError(errorMessage);
@@ -159,12 +170,15 @@ export function VoiceInput({
       };
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
+        console.log('[VOICE] 🎯 Speech recognition result received:', event.results);
         let finalTranscript = '';
         let interimTranscript = '';
 
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const result = event.results[i];
           const transcriptText = result[0].transcript;
+
+          console.log('[VOICE] Processing result', i, '| Text:', transcriptText, '| isFinal:', result.isFinal);
 
           if (result.isFinal) {
             finalTranscript += transcriptText;
@@ -174,7 +188,11 @@ export function VoiceInput({
           }
         }
 
+        console.log('[VOICE] Final transcript:', finalTranscript);
+        console.log('[VOICE] Interim transcript:', interimTranscript);
+
         if (finalTranscript) {
+          console.log('[VOICE] ✅ Calling onTranscript callback with:', finalTranscript);
           setTranscript(prev => prev + finalTranscript);
           onTranscript(transcript + finalTranscript);
           
@@ -207,13 +225,23 @@ export function VoiceInput({
   }, []);
 
   const toggleListening = () => {
-    if (!recognitionRef.current || disabled) return;
+    console.log('[VOICE] toggleListening called');
+    console.log('[VOICE] isListening:', isListening);
+    console.log('[VOICE] recognitionRef.current:', !!recognitionRef.current);
+
+    if (!recognitionRef.current || disabled) {
+      console.log('[VOICE] ❌ Voice input disabled or not available');
+      return;
+    }
 
     if (isListening) {
+      console.log('[VOICE] 🔴 Stopping recording...');
       recognitionRef.current.stop();
     } else {
+      console.log('[VOICE] 🔵 Starting recording...');
       // Set language before starting
       recognitionRef.current.lang = currentLanguage;
+      console.log('[VOICE] Language set to:', currentLanguage);
       recognitionRef.current.start();
     }
   };

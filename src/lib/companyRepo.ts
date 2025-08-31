@@ -272,17 +272,62 @@ export async function generateNextDocumentNumber(
   }
 
   const prefix = type === 'quote' ? settings.quote_number_prefix : settings.invoice_number_prefix;
-  const nextNumber = type === 'quote' ? settings.next_quote_number : settings.next_invoice_number;
-  
+  const tableName = type === 'quote' ? 'quotes' : 'invoices';
+
+  // Find the highest existing number for this prefix to avoid duplicates
+  const numberField = type === 'quote' ? 'quote_number' : 'invoice_number';
+  const { data: existingDocs, error } = await supabase
+    .from(tableName)
+    .select(numberField)
+    .like(numberField, `${prefix}%`)
+    .order(numberField, { ascending: false })
+    .limit(1);
+
+  if (error) {
+    console.warn('Error finding existing document numbers, using counter approach:', error);
+    // Fallback to old method if there's an error
+    const nextNumber = type === 'quote' ? settings.next_quote_number : settings.next_invoice_number;
+    const documentNumber = `${prefix}${nextNumber.toString().padStart(4, '0')}`;
+
+    // Increment the counter in the database
+    const updateField = type === 'quote' ? 'next_quote_number' : 'next_invoice_number';
+    await updateCompanySettings({
+      [updateField]: nextNumber + 1
+    } as CompanySettingsUpdateRequest);
+
+    return documentNumber;
+  }
+
+  // Extract the sequence number from the existing document
+  let nextSequenceNumber = type === 'quote' ? (settings.next_quote_number || 1000) : (settings.next_invoice_number || 1000);
+  if (existingDocs && existingDocs.length > 0) {
+    const existingDoc = existingDocs[0];
+    const existingNumber = existingDoc[numberField];
+    if (existingNumber && existingNumber.startsWith(prefix)) {
+      // Extract the sequence part (everything after the prefix)
+      const sequenceStr = existingNumber.substring(prefix.length);
+      const sequenceNumber = parseInt(sequenceStr, 10);
+      nextSequenceNumber = (isNaN(sequenceNumber) ? 999 : sequenceNumber) + 1;
+    }
+  }
+
+  // Ensure we don't go below the minimum from settings
+  const minSequence = type === 'quote' ? settings.next_quote_number : settings.next_invoice_number;
+  if (nextSequenceNumber < minSequence) {
+    nextSequenceNumber = minSequence;
+  }
+
   // Generate the number
-  const documentNumber = `${prefix}${nextNumber.toString().padStart(4, '0')}`;
-  
-  // Increment the counter in the database
+  const documentNumber = `${prefix}${nextSequenceNumber.toString().padStart(4, '0')}`;
+
+  // Update the counter in settings to prevent future conflicts
   const updateField = type === 'quote' ? 'next_quote_number' : 'next_invoice_number';
+  const newCounterValue = nextSequenceNumber + 1;
   await updateCompanySettings({
-    [updateField]: nextNumber + 1
+    [updateField]: newCounterValue
   } as CompanySettingsUpdateRequest);
-  
+
+  console.log(`Generated ${type} number: ${documentNumber} (sequence: ${nextSequenceNumber})`);
   return documentNumber;
 }
 
