@@ -254,7 +254,7 @@ export function ZatcaSettings() {
               </AlertDescription>
             </Alert>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="certificate-upload">ZATCA Certificate</Label>
                 <div className="mt-2 space-y-2">

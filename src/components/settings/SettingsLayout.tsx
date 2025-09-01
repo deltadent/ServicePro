@@ -76,22 +76,23 @@ export function SettingsLayout() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7 gap-1 h-auto p-1">
-          {settingsTabs.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <TabsTrigger 
-                key={tab.id} 
-                value={tab.id}
-                className="flex flex-col items-center gap-2 p-3 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                <Icon className="h-4 w-4" />
-                <span className="text-xs text-center leading-tight">{tab.label}</span>
-              </TabsTrigger>
-            );
-          })}
-        </TabsList>
-
+        <div className="overflow-x-auto">
+          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-7 gap-1 h-auto p-1">
+            {settingsTabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <TabsTrigger 
+                  key={tab.id} 
+                  value={tab.id}
+                  className="flex flex-col items-center gap-2 p-3 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="text-xs text-center leading-tight">{tab.label}</span>
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
+        </div>
         {settingsTabs.map((tab) => (
           <TabsContent key={tab.id} value={tab.id} className="space-y-6">
             <Card>

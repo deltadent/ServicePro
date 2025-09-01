@@ -9,18 +9,26 @@ interface Profile {
   role: 'admin' | 'worker';
 }
 
+import { LucideProps } from "lucide-react";
+import { ForwardRefExoticComponent, RefAttributes } from "react";
+
 interface NavbarProps {
   title: string;
   profile: Profile | null;
   handleSignOut: () => Promise<void>;
+  menuItems: {
+    icon: ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>;
+    label: string;
+    path: string;
+  }[];
 }
 
-export function Navbar({ title, profile, handleSignOut }: NavbarProps) {
+export function Navbar({ title, profile, handleSignOut, menuItems }: NavbarProps) {
   return (
     <header className="sticky top-0 z-10 w-full bg-background/95 shadow backdrop-blur supports-[backdrop-filter]:bg-background/60 dark:shadow-secondary">
       <div className="mx-4 sm:mx-8 flex h-14 items-center">
         <div className="flex items-center space-x-4 lg:space-x-0">
-          <SheetMenu />
+          <SheetMenu menuItems={menuItems} />
           <h1 className="font-bold">{title}</h1>
         </div>
         <div className="flex flex-1 items-center justify-end">

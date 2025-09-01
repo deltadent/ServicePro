@@ -44,7 +44,7 @@ export default function AdminPanelLayout({
           !settings.disabled && (!getOpenState() ? "lg:ml-[90px]" : "lg:ml-60")
         )}
       >
-        <ContentLayout title={title} profile={profile} handleSignOut={handleSignOut}>
+        <ContentLayout title={title} profile={profile} handleSignOut={handleSignOut} menuItems={menuItems}>
           {children}
         </ContentLayout>
       </main>

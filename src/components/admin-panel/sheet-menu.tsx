@@ -26,29 +26,16 @@ import {
     Shield
   } from "lucide-react";
 import { Menu } from "./menu";
+import { LucideProps } from "lucide-react";
+import { ForwardRefExoticComponent, RefAttributes } from "react";
 
-export function SheetMenu() {
-    const { isAdmin } = useAuth();
-    const adminMenuItems = [
-        { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
-        { icon: Calendar, label: 'Job Management', path: '/admin/jobs' },
-        { icon: Users, label: 'Technicians', path: '/admin/technicians' },
-        { icon: Users, label: 'Customers', path: '/admin/customers' },
-        { icon: FileText, label: 'Quotes', path: '/admin/quotes' },
-        { icon: Shield, label: 'Checklists', path: '/admin/checklists' },
-        { icon: Package, label: 'Inventory', path: '/admin/inventory' },
-        { icon: DollarSign, label: 'Financial', path: '/admin/financial' },
-        { icon: BarChart3, label: 'Reports', path: '/admin/reports' },
-      ];
-    
-      const workerMenuItems = [
-        { icon: LayoutDashboard, label: 'Dashboard', path: '/worker' },
-        { icon: ClipboardList, label: 'My Jobs', path: '/worker/jobs' },
-        { icon: Package, label: 'Inventory', path: '/worker/inventory' },
-        { icon: User, label: 'Profile', path: '/worker/profile' },
-      ];
-    
-      const menuItems = isAdmin ? adminMenuItems : workerMenuItems;
+export function SheetMenu({ menuItems }: {
+  menuItems: {
+    icon: ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>;
+    label: string;
+    path: string;
+  }[];
+}) {
   return (
     <Sheet>
       <SheetTrigger className="lg:hidden" asChild>

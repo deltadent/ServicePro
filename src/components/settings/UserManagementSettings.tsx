@@ -19,7 +19,7 @@ export function UserManagementSettings() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 border rounded-lg">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 border rounded-lg">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-sm font-medium">
                   A
@@ -65,7 +65,7 @@ export function UserManagementSettings() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 border rounded-lg">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 border rounded-lg">
               <div>
                 <p className="font-medium text-sm">Administrator</p>
                 <p className="text-xs text-muted-foreground">Full system access and management</p>
@@ -73,7 +73,7 @@ export function UserManagementSettings() {
               <Badge variant="default">Full Access</Badge>
             </div>
 
-            <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/50">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 border rounded-lg bg-muted/50">
               <div>
                 <p className="font-medium text-sm text-muted-foreground">Manager</p>
                 <p className="text-xs text-muted-foreground">Customer and quote management</p>
@@ -81,7 +81,7 @@ export function UserManagementSettings() {
               <Badge variant="secondary">Coming Soon</Badge>
             </div>
 
-            <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/50">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 border rounded-lg bg-muted/50">
               <div>
                 <p className="font-medium text-sm text-muted-foreground">Employee</p>
                 <p className="text-xs text-muted-foreground">Basic customer and job access</p>
