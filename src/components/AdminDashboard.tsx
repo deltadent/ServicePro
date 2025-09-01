@@ -405,11 +405,11 @@ const AdminDashboard = () => {
             {recentJobs.map((job, index) => (
               <div
                 key={job.id}
-                className={`flex items-center justify-between p-4 rounded-2xl transition-all duration-200 hover:shadow-soft ${
+                className={`flex flex-col md:flex-row items-start md:items-center justify-between p-4 rounded-2xl transition-all duration-200 hover:shadow-soft ${
                   index % 2 === 0 ? 'bg-gray-50/50' : 'bg-white'
                 } hover:bg-white`}
               >
-                <div className="flex items-center space-x-4 flex-1">
+                <div className="flex items-center space-x-4 flex-1 mb-2 md:mb-0">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <h4 className="font-semibold text-sm text-foreground">{job.title}</h4>
@@ -425,7 +425,7 @@ const AdminDashboard = () => {
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-right w-full md:w-auto mt-2 md:mt-0">
                   <p className="text-sm font-bold text-foreground">${(job.total_cost || 0).toFixed(2)}</p>
                   <p className="text-xs text-muted-foreground font-medium">{job.job_number}</p>
                 </div>

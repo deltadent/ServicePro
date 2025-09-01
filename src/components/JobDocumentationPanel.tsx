@@ -14,7 +14,8 @@ import {
   FileText,
   Download,
   Eye,
-  Trash2
+  Trash2,
+  Receipt
 } from "lucide-react";
 
 interface JobDocumentationPanelNewProps {
@@ -28,6 +29,7 @@ interface JobDocumentationPanelNewProps {
   jobStatus: string;
   job: any;
   onGenerateReport: () => void;
+  onGenerateInvoice?: () => void;
   selectedPhotoType: 'before' | 'during' | 'after';
   setSelectedPhotoType: (type: 'before' | 'during' | 'after') => void;
 }
@@ -43,6 +45,7 @@ const JobDocumentationPanelNew = ({
   jobStatus,
   job,
   onGenerateReport,
+  onGenerateInvoice,
   selectedPhotoType,
   setSelectedPhotoType
 }: JobDocumentationPanelNewProps) => {
@@ -297,14 +300,26 @@ const JobDocumentationPanelNew = ({
                 </div>
               </div>
 
-              <Button
-                onClick={handleGenerateReport}
-                className="bg-green-600 hover:bg-green-700 text-white"
-                size="lg"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Generate Report
-              </Button>
+              <div className="flex gap-3">
+                <Button
+                  onClick={handleGenerateReport}
+                  className="bg-green-600 hover:bg-green-700 text-white flex-1"
+                  size="lg"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Generate Report
+                </Button>
+                {jobStatus === 'completed' && onGenerateInvoice && (
+                  <Button
+                    onClick={onGenerateInvoice}
+                    className="bg-blue-600 hover:bg-blue-700 text-white flex-1"
+                    size="lg"
+                  >
+                    <Receipt className="w-4 h-4 mr-2" />
+                    Generate Invoice
+                  </Button>
+                )}
+              </div>
             </div>
 
             <div className="mt-4 p-4 bg-white rounded-lg border border-green-200">

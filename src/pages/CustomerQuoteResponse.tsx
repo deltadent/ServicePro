@@ -457,7 +457,7 @@ const CustomerQuoteResponse = () => {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Preferred Dates * (Select 1-3 dates)</FormLabel>
-                          <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto border rounded p-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto border rounded p-3">
                             {availableDates.slice(0, 14).map((date) => (
                               <div key={date.value} className="flex items-center space-x-2">
                                 <Checkbox

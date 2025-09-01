@@ -97,8 +97,9 @@ const JobFromQuoteDialog = ({ quote, isOpen, onClose, onJobCreated }: JobFromQuo
     try {
       setLoading(true);
 
-      // Generate job number
-      const jobNumber = `JOB-${Date.now()}`;
+      // Generate job number with prefix from settings
+      const nextJobNumber = (settings as any)?.next_job_number || 1001;
+      const jobNumber = `${settings?.invoice_number_prefix || 'JOB-'}${String(nextJobNumber).padStart(4, '0')}`;
 
       // Create job from quote
       const jobData = {
@@ -125,6 +126,12 @@ const JobFromQuoteDialog = ({ quote, isOpen, onClose, onJobCreated }: JobFromQuo
         .single();
 
       if (jobError) throw jobError;
+
+      // Increment the job number in company settings
+      await supabase
+        .from('company_settings')
+        .update({ next_job_number: nextJobNumber + 1 })
+        .eq('id', settings.id);
 
       // Create job checklist from quote items
       if (quote.quote_items && quote.quote_items.length > 0) {

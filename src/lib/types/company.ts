@@ -48,6 +48,7 @@ export interface CompanySettings {
   invoice_number_prefix: string;
   next_quote_number: number;
   next_invoice_number: number;
+  next_job_number: number;
   
   // Template Settings
   default_quote_template: string;

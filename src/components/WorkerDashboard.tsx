@@ -315,7 +315,7 @@ const WorkerDashboard = () => {
 
         {/* Search and Filters */}
         <div className="px-4 pb-3">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
               <Input
@@ -326,7 +326,7 @@ const WorkerDashboard = () => {
               />
             </div>
 
-            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 flex-wrap">
               {[
                 { key: 'all', label: 'All' },
                 { key: 'scheduled', label: 'Ready' },
@@ -337,7 +337,7 @@ const WorkerDashboard = () => {
                   key={key}
                   size="sm"
                   variant={statusFilter === key ? 'default' : 'ghost'}
-                  className="h-8 px-3 text-xs"
+                  className="h-8 px-3 text-xs flex-grow"
                   onClick={() => setStatusFilter(key)}
                 >
                   {label}
@@ -350,7 +350,7 @@ const WorkerDashboard = () => {
               size="sm"
               onClick={handleSync}
               disabled={syncing || !online}
-              className="h-10"
+              className="h-10 w-full sm:w-auto"
             >
               <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
             </Button>

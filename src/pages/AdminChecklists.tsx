@@ -380,7 +380,7 @@ const AdminChecklists = () => {
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto md:max-w-2xl md:max-h-[90vh] w-full md:w-auto">
           <DialogHeader>
             <DialogTitle>
               {dialogMode === 'create' ? 'Create Checklist Template' : 'Edit Checklist Template'}

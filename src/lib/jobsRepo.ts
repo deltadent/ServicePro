@@ -56,6 +56,31 @@ export interface TimeTrackingStats {
 }
 
 /**
+ * Deletes a job from the database.
+ * @param jobId - The ID of the job to delete.
+ * @returns A promise that resolves when the job is deleted.
+ */
+export async function deleteJob(jobId: string): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('jobs')
+      .delete()
+      .eq('id', jobId);
+
+    if (error) throw error;
+
+    // Also remove from local cache
+    const db = await dbService.getDB();
+    await db.delete('jobs', jobId);
+    await db.delete('jobDetails', jobId);
+    console.log(`Deleted job ${jobId} from network and cache`);
+  } catch (error) {
+    console.error(`Failed to delete job ${jobId}:`, error);
+    throw error;
+  }
+}
+
+/**
  * Fetches jobs list with offline-first strategy
  * @param options - Query options for filtering jobs
  * @returns Promise resolving to jobs list with metadata

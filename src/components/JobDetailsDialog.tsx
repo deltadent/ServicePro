@@ -40,7 +40,9 @@ import { queueAction } from '@/lib/queue';
 import JobWorkflowStepper from './JobWorkflowStepper';
 import JobChecklist from './JobChecklist';
 import JobDocumentationPanel from './JobDocumentationPanel';
+import InvoiceGenerationDialog from './InvoiceGenerationDialog';
 import { fetchJobChecklist } from '@/lib/checklistsRepo';
+import { InvoiceGenerationResult } from '@/lib/invoiceRepo';
 
 interface JobDetailsDialogProps {
   job: any;
@@ -66,6 +68,7 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
   const [selectedPhotoType, setSelectedPhotoType] = useState<'before' | 'during' | 'after'>('during');
   const [expandedSection, setExpandedSection] = useState<string>('workflow');
   const [showCustomerProfile, setShowCustomerProfile] = useState(false);
+  const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
 
   useEffect(() => {
     if (job) {
@@ -395,6 +398,17 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
     setExpandedSection(expandedSection === sectionId ? '' : sectionId);
   };
 
+  const handleInvoiceGenerated = async (result: InvoiceGenerationResult) => {
+    console.log('Invoice generated:', result);
+    toast({
+      title: "Invoice Created Successfully",
+      description: `Invoice ${result.invoice.invoice_number} is ready for processing`,
+    });
+    
+    // Optionally refresh job data or navigate to invoice
+    if (onJobUpdate) onJobUpdate();
+  };
+
   const handleGenerateReport = async () => {
     try {
       const { generateMinimalistJobReport } = await import('../utils/modernPdfGenerator');
@@ -470,6 +484,7 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
           jobStatus={job.status}
           job={job}
           onGenerateReport={handleGenerateReport}
+          onGenerateInvoice={() => setShowInvoiceDialog(true)}
           selectedPhotoType={selectedPhotoType}
           setSelectedPhotoType={setSelectedPhotoType}
         />
@@ -687,6 +702,14 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Invoice Generation Dialog */}
+      <InvoiceGenerationDialog
+        job={job}
+        isOpen={showInvoiceDialog}
+        onClose={() => setShowInvoiceDialog(false)}
+        onInvoiceGenerated={handleInvoiceGenerated}
+      />
     </>
   );
 };

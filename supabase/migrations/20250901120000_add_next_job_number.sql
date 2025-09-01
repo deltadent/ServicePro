@@ -1,0 +1,2 @@
+ALTER TABLE company_settings
+ADD COLUMN next_job_number INTEGER NOT NULL DEFAULT 1001;

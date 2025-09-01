@@ -166,11 +166,11 @@ const CustomerProfile = ({ id: propId }: CustomerProfileProps = {}) => {
   return (
     <div className="space-y-6 p-4 md:p-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <div>
+        <div className="flex-grow">
           <h1 className="text-2xl font-bold">{customer.name}</h1>
           <p className="text-muted-foreground">Customer Profile</p>
         </div>
@@ -181,8 +181,8 @@ const CustomerProfile = ({ id: propId }: CustomerProfileProps = {}) => {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <Card>
           <CardHeader>
-            <div className="flex justify-between items-center">
-              <TabsList>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <TabsList className="overflow-x-auto whitespace-nowrap">
                 <TabsTrigger value="profile">Profile Details</TabsTrigger>
                 <TabsTrigger value="saudi">Saudi Arabia</TabsTrigger>
                 <TabsTrigger value="jobs">Recent Jobs</TabsTrigger>

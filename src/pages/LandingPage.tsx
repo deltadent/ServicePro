@@ -19,11 +19,14 @@ import {
   Clock,
   Sparkles,
   ArrowRight,
+  Menu,
+  X
 } from "lucide-react";
 import { useMobile } from "@/hooks/use-mobile";
 
 export default function LandingPage() {
   const isMobile = useMobile();
+  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
@@ -86,8 +89,26 @@ export default function LandingPage() {
               <Link to="/login">
                 <Button className="rounded-2xl">Log in</Button>
               </Link>
+              {isMobile && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                >
+                  {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                </Button>
+              )}
             </div>
           </div>
+          {isMobile && isMenuOpen && (
+            <div className="flex flex-col gap-4 py-4">
+              <Link to="#home" className="text-lg font-medium" onClick={() => setIsMenuOpen(false)}>Home</Link>
+              <Link to="#features" className="text-lg font-medium" onClick={() => setIsMenuOpen(false)}>Features</Link>
+              <Link to="#how" className="text-lg font-medium" onClick={() => setIsMenuOpen(false)}>How it works</Link>
+              <Link to="#pricing" className="text-lg font-medium" onClick={() => setIsMenuOpen(false)}>Pricing</Link>
+              <Link to="#faq" className="text-lg font-medium" onClick={() => setIsMenuOpen(false)}>FAQ</Link>
+            </div>
+          )}
         </div>
       </header>
 

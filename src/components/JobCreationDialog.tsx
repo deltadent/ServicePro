@@ -285,8 +285,13 @@ const JobCreationDialog = ({ onJobCreated }: JobCreationDialogProps) => {
       // Remove checklist_template_id from job data since it's not a job field
       const { checklist_template_id, ...jobDataWithoutTemplate } = formData;
 
+      // Generate job number with prefix from settings
+      const nextJobNumber = (settings as any)?.next_job_number || 1001;
+      const jobNumber = `${settings?.invoice_number_prefix || 'JOB-'}${String(nextJobNumber).padStart(4, '0')}`;
+
       const jobData = {
         ...jobDataWithoutTemplate,
+        job_number: jobNumber,
         scheduled_date: scheduledDate?.toISOString(),
         end_date: endDate.toISOString(),
         status: 'scheduled'
@@ -299,6 +304,12 @@ const JobCreationDialog = ({ onJobCreated }: JobCreationDialogProps) => {
         .single();
 
       if (jobError) throw jobError;
+
+      // Increment the job number in company settings
+      await supabase
+        .from('company_settings')
+        .update({ next_job_number: nextJobNumber + 1 })
+        .eq('id', settings.id);
 
       // If a checklist template was selected, create a checklist from it
       if (checklist_template_id && createdJob) {

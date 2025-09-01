@@ -20,7 +20,8 @@ import {
   SortDesc,
   MoreHorizontal,
   PlusCircle,
-  List
+  List,
+  Trash2
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -33,8 +34,19 @@ import { useToast } from "@/hooks/use-toast";
 import JobCreationDialog from './JobCreationDialog';
 import JobDetailsDialog from './JobDetailsDialog';
 import { useCompanySettings } from '@/hooks/useCompanySettings';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { JobCreationProvider } from '@/context/JobCreationContext';
+import { deleteJob } from '@/lib/jobsRepo';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const JobManagement = () => {
   const { toast } = useToast();
@@ -53,6 +65,7 @@ const JobManagement = () => {
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [showJobDetails, setShowJobDetails] = useState(false);
   const [selectedJobs, setSelectedJobs] = useState<string[]>([]);
+  const [jobToDelete, setJobToDelete] = useState<any>(null);
 
   useEffect(() => {
     fetchJobs();
@@ -108,6 +121,27 @@ const JobManagement = () => {
         description: error.message,
         variant: "destructive"
       });
+    }
+  };
+
+  const handleDeleteJob = async () => {
+    if (!jobToDelete) return;
+
+    try {
+      await deleteJob(jobToDelete.id);
+      toast({
+        title: "Success",
+        description: `Job #${jobToDelete.job_number} has been deleted.`,
+      });
+      fetchJobs(true);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to delete job",
+        variant: "destructive",
+      });
+    } finally {
+      setJobToDelete(null);
     }
   };
 
@@ -540,6 +574,14 @@ const JobManagement = () => {
                                   <DropdownMenuItem onClick={() => updateJobStatus(job.id, 'in_progress')}>Set In Progress</DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => updateJobStatus(job.id, 'completed')}>Set Completed</DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => updateJobStatus(job.id, 'on_hold')}>Set On Hold</DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="text-red-600"
+                                    onClick={() => setJobToDelete(job)}
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    <span>Delete Job</span>
+                                  </DropdownMenuItem>
                                 </>
                               )}
                             </DropdownMenuContent>
@@ -616,6 +658,24 @@ const JobManagement = () => {
           }}
         />
       )}
+
+      <AlertDialog open={!!jobToDelete} onOpenChange={() => setJobToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the job
+              and all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteJob}>
+              Yes, delete job
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

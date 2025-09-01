@@ -95,10 +95,14 @@ const CustomerQuoteView = () => {
       setActionLoading(true);
       
       // Get device information
-      const deviceInfo = {
+      const deviceInfo: {
+        user_agent: string;
+        screen_resolution: string;
+        device_type: "mobile" | "desktop";
+      } = {
         user_agent: navigator.userAgent,
         screen_resolution: `${window.screen.width}x${window.screen.height}`,
-        device_type: isMobile ? 'mobile' : 'desktop' as const
+        device_type: isMobile ? 'mobile' : 'desktop',
       };
 
       await approveQuote(quote.id, {
@@ -249,7 +253,7 @@ const CustomerQuoteView = () => {
                   <Button
                     onClick={() => navigate(`/quote/${quote?.id}/respond`)}
                     size="lg"
-                    className="bg-green-600 hover:bg-green-700 text-white"
+                    className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
                   >
                     <CheckCircle className="w-5 h-5 mr-2" />
                     Respond to Quote
@@ -258,6 +262,7 @@ const CustomerQuoteView = () => {
                     variant="outline"
                     size="lg"
                     onClick={() => window.print()}
+                    className="w-full sm:w-auto"
                   >
                     <Download className="w-5 h-5 mr-2" />
                     Download PDF
