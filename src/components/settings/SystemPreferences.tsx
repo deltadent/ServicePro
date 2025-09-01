@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { Settings, Database, Shield, Bell, Download, RefreshCw } from 'lucide-react';
 import { getPublicSystemConfigs, getSystemConfig } from '@/lib/companyRepo';
+import { subscribeToPushNotifications } from '@/lib/notifications';
 
 export function SystemPreferences() {
   const { toast } = useToast();
@@ -250,6 +251,23 @@ export function SystemPreferences() {
               Notification preferences are managed by system administrators. Contact support for changes.
             </AlertDescription>
           </Alert>
+
+          <div className="flex items-center justify-between mt-4">
+            <div>
+              <Label>Push Notifications</Label>
+              <p className="text-sm text-muted-foreground">
+                Enable push notifications for this device
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={subscribeToPushNotifications}
+            >
+              Subscribe
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

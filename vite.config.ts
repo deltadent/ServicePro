@@ -107,7 +107,7 @@ export default defineConfig(({ mode }) => ({
             }
           }
         ],
-        navigateFallback: '/login',
+        navigateFallback: '/offline',
         navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/, /^\/$/]
       }
     }),

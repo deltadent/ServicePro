@@ -13,6 +13,7 @@ import Layout from "@/components/Layout";
 import { CalendarDialogProvider } from "@/context/CalendarDialogContext";
 import NotFound from "@/pages/NotFound";
 import LandingPage from "@/pages/LandingPage";
+import OfflinePage from "@/pages/Offline";
 import { PageTransition } from "@/components/PageTransition";
 
 // Lazy load heavy components for better performance
@@ -316,6 +317,14 @@ const AppRoutes = () => {
               <Suspense fallback={<LoadingSpinner />}>
                 <CustomerQuoteResponse />
               </Suspense>
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/offline"
+          element={
+            <PageTransition>
+              <OfflinePage />
             </PageTransition>
           }
         />

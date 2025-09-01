@@ -1,6 +1,7 @@
 import { ModeToggle } from "@/components/mode-toggle";
 import { UserNav } from "@/components/admin-panel/user-nav";
 import { SheetMenu } from "@/components/admin-panel/sheet-menu";
+import { SyncStatus } from "@/components/SyncStatus";
 
 interface Profile {
   id: string;
@@ -32,6 +33,7 @@ export function Navbar({ title, profile, handleSignOut, menuItems }: NavbarProps
           <h1 className="font-bold">{title}</h1>
         </div>
         <div className="flex flex-1 items-center justify-end">
+          <SyncStatus />
           <ModeToggle />
           <UserNav profile={profile} handleSignOut={handleSignOut} />
         </div>
