@@ -52,6 +52,7 @@ import { format } from "date-fns";
 import QuoteCreationDialog from "./QuoteCreationDialog";
 import QuotePreview from "./QuotePreview";
 import QuoteShareDialog from "./QuoteShareDialog";
+import JobFromQuoteDialog from "./JobFromQuoteDialog";
 
 const QuoteManagement = () => {
   const { toast } = useToast();
@@ -67,6 +68,7 @@ const QuoteManagement = () => {
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
+  const [showJobFromQuoteDialog, setShowJobFromQuoteDialog] = useState(false);
 
   // Filters
   const filters: QuoteFilters = useMemo(() => {
@@ -97,6 +99,7 @@ const QuoteManagement = () => {
   const loadQuotes = async () => {
     try {
       setLoading(true);
+      console.log('🔄 QuoteManagement: Starting quote fetch with filters:', filters);
       const result = await fetchQuotesList({
         filters,
         sort_by: 'created_at',
@@ -104,7 +107,13 @@ const QuoteManagement = () => {
         per_page: 50
       });
       
-      setQuotes(result.quotes);
+      console.log('✅ QuoteManagement: Fetch result:', {
+        quotesCount: result.quotes?.length,
+        totalCount: result.total_count,
+        fromCache: result.from_cache
+      });
+      
+      setQuotes(result.quotes || []);
       
       if (result.from_cache) {
         toast({
@@ -114,12 +123,21 @@ const QuoteManagement = () => {
         });
       }
     } catch (error) {
-      console.error('Failed to load quotes:', error);
+      console.error('❌ QuoteManagement: Failed to load quotes:', error);
+      console.error('❌ Error details:', {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint
+      });
       toast({
         title: "Error",
-        description: "Failed to load quotes",
+        description: `Failed to load quotes: ${error?.message || 'Unknown error'}. Check console for details.`,
         variant: "destructive"
       });
+      
+      // Set empty array to prevent undefined errors
+      setQuotes([]);
     } finally {
       setLoading(false);
     }
@@ -160,22 +178,17 @@ const QuoteManagement = () => {
     }
   };
 
-  const handleConvertToJob = async (quote: Quote) => {
-    try {
-      const result = await convertQuoteToJob(quote.id);
-      await loadQuotes();
-      
-      toast({
-        title: "Quote Converted",
-        description: `Quote ${quote.quote_number} has been converted to job`,
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to convert quote to job",
-        variant: "destructive"
-      });
-    }
+  const handleConvertToJob = (quote: Quote) => {
+    setSelectedQuote(quote);
+    setShowJobFromQuoteDialog(true);
+  };
+
+  const handleJobCreated = async (jobId: string) => {
+    await loadQuotes();
+    toast({
+      title: "Job Created Successfully",
+      description: `Job has been created from Quote #${selectedQuote?.quote_number}`,
+    });
   };
 
   const handlePreviewQuote = (quote: Quote) => {
@@ -537,6 +550,19 @@ const QuoteManagement = () => {
             setSelectedQuote(null);
           }}
           onSent={handleQuoteSent}
+        />
+      )}
+
+      {/* Job From Quote Dialog */}
+      {showJobFromQuoteDialog && selectedQuote && (
+        <JobFromQuoteDialog
+          quote={selectedQuote}
+          isOpen={showJobFromQuoteDialog}
+          onClose={() => {
+            setShowJobFromQuoteDialog(false);
+            setSelectedQuote(null);
+          }}
+          onJobCreated={handleJobCreated}
         />
       )}
     </div>

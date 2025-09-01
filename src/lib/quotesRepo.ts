@@ -556,22 +556,56 @@ export async function convertQuoteToJob(quoteId: string): Promise<{ quote: Quote
       throw new Error('Quote must be approved before conversion');
     }
 
-    // Create job from quote data
+    // Generate job number
+    const jobNumber = `JOB-${Date.now()}`;
+
+    // Create job from quote data with enhanced mapping
     const { data: job, error: jobError } = await supabase
       .from('jobs')
       .insert({
+        job_number: jobNumber,
         title: quote.title,
         description: quote.description,
         customer_id: quote.customer_id,
         technician_id: quote.created_by,
-        total_cost: quote.total_amount,
+        quote_id: quoteId, // Link to original quote
+        estimated_cost: quote.total_amount,
+        total_cost: null, // Will be calculated after job completion
         status: 'scheduled',
-        priority: 'medium'
+        priority: 'medium',
+        service_type: 'general',
+        scheduled_date: new Date().toISOString(),
+        quote_converted_at: new Date().toISOString(),
+        created_at: new Date().toISOString()
       })
       .select()
       .single();
 
     if (jobError) throw jobError;
+
+    // Create job checklist from quote items
+    if (quote.quote_items && quote.quote_items.length > 0) {
+      const checklistItems = quote.quote_items.map((item, index) => ({
+        id: `item-${index + 1}`,
+        text: `${item.description || item.name} - ${item.item_type.charAt(0).toUpperCase() + item.item_type.slice(1)}`,
+        required: item.item_type === 'service',
+        completed: false
+      }));
+
+      const checklistData = {
+        job_id: job.id,
+        template_name: `Quote #${quote.quote_number} Checklist`,
+        items: checklistItems,
+        completed_count: 0,
+        total_count: checklistItems.length,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      await supabase
+        .from('job_checklists')
+        .insert([checklistData]);
+    }
 
     // Update quote to converted status
     const updatedQuote = await updateQuote(quoteId, {
@@ -581,7 +615,10 @@ export async function convertQuoteToJob(quoteId: string): Promise<{ quote: Quote
     // Link quote to job
     await supabase
       .from('quotes')
-      .update({ converted_to_job_id: job.id, converted_at: new Date().toISOString() })
+      .update({ 
+        converted_to_job_id: job.id, 
+        converted_to_job_at: new Date().toISOString() 
+      })
       .eq('id', quoteId);
 
     return { quote: updatedQuote, job };

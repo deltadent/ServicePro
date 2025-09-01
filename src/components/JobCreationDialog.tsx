@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { useJobCreation } from "@/context/JobCreationContext";
 import { useCalendarDialog } from "@/context/CalendarDialogContext";
 import { fetchChecklistTemplates } from '@/lib/checklistsRepo';
+import { useCompanySettings } from '@/hooks/useCompanySettings';
 
 interface JobCreationDialogProps {
   onJobCreated: () => void;
@@ -28,6 +29,7 @@ const JobCreationDialog = ({ onJobCreated }: JobCreationDialogProps) => {
   const { toast } = useToast();
   const { setCustomerId, setServiceType, sessionLength } = useJobCreation();
   const { isOpen, setIsOpen, scheduledDate, setScheduledDate } = useCalendarDialog();
+  const { branding, settings } = useCompanySettings();
   const [showScheduler, setShowScheduler] = useState(false);
   const [loading, setLoading] = useState(false);
   const [customers, setCustomers] = useState<any[]>([]);
@@ -51,6 +53,50 @@ const JobCreationDialog = ({ onJobCreated }: JobCreationDialogProps) => {
 
   const fetchCustomersAndTechnicians = async () => {
     console.log('🔄 JobCreationDialog: Starting data fetch...');
+    
+    // Debug: Check authentication state first
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    console.log('🔑 Auth state:', { user: user?.email, error: authError });
+    
+    if (authError) {
+      console.error('❌ Authentication error:', authError);
+      toast({
+        title: "Authentication Error",
+        description: "Please log in again to continue",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Debug: Test RLS and permissions
+    try {
+      console.log('🔍 Testing database permissions...');
+      
+      const { data: userProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, email, role, is_active')
+        .eq('id', user?.id)
+        .single();
+        
+      console.log('👤 User profile:', { userProfile, profileError });
+      
+      // Test simple count queries
+      const { count: customerCount, error: customerCountError } = await supabase
+        .from('customers')
+        .select('*', { count: 'exact', head: true });
+        
+      const { count: profileCount, error: profileCountError } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+        
+      console.log('📊 Table counts:', { 
+        customers: { count: customerCount, error: customerCountError },
+        profiles: { count: profileCount, error: profileCountError }
+      });
+      
+    } catch (debugError) {
+      console.error('🐛 Debug test failed:', debugError);
+    }
 
     try {
       console.log('🔧 About to fetch checklist templates...');
@@ -193,9 +239,14 @@ const JobCreationDialog = ({ onJobCreated }: JobCreationDialogProps) => {
       // Show user-friendly error
       toast({
         title: "Error Loading Data",
-        description: `Failed to load data: ${error?.message || 'Unknown error'}`,
+        description: `Failed to load data: ${error?.message || 'Unknown error'}. Check console for details.`,
         variant: "destructive"
       });
+      
+      // Set empty arrays to prevent undefined errors
+      setCustomers([]);
+      setTechnicians([]);
+      setChecklistTemplates([]);
     }
   };
 
@@ -323,7 +374,14 @@ const JobCreationDialog = ({ onJobCreated }: JobCreationDialogProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={handleOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => setShowScheduler(true)}>
+        <Button 
+          style={{
+            backgroundColor: branding?.primary_color || '#3B82F6',
+            borderColor: branding?.primary_color || '#3B82F6'
+          }}
+          className="hover:opacity-90"
+          onClick={() => setShowScheduler(true)}
+        >
           <Plus className="w-4 h-4 mr-2" />
           Create Job
         </Button>
@@ -351,6 +409,10 @@ const JobCreationDialog = ({ onJobCreated }: JobCreationDialogProps) => {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Debug info display */}
+              <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
+                Debug: {customers.length} customers, {technicians.length} technicians, {checklistTemplates.length} templates loaded
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="customer_id">Customer *</Label>
@@ -362,12 +424,16 @@ const JobCreationDialog = ({ onJobCreated }: JobCreationDialogProps) => {
                   <SelectValue placeholder="Select customer" />
                 </SelectTrigger>
                 <SelectContent>
-                  {customers.map((customer) => (
+                {customers.length === 0 ? (
+                  <SelectItem value="" disabled>No customers found</SelectItem>
+                ) : (
+                  customers.map((customer) => (
                     <SelectItem key={customer.id} value={customer.id}>
                       {customer.name}
                     </SelectItem>
-                  ))}
-                </SelectContent>
+                  ))
+                )}
+              </SelectContent>
               </Select>
             </div>
 
@@ -378,12 +444,16 @@ const JobCreationDialog = ({ onJobCreated }: JobCreationDialogProps) => {
                   <SelectValue placeholder="Select technician" />
                 </SelectTrigger>
                 <SelectContent>
-                  {technicians.map((tech) => (
+                {technicians.length === 0 ? (
+                  <SelectItem value="" disabled>No technicians found</SelectItem>
+                ) : (
+                  technicians.map((tech) => (
                     <SelectItem key={tech.id} value={tech.id}>
                       {tech.full_name || tech.email}
                     </SelectItem>
-                  ))}
-                </SelectContent>
+                  ))
+                )}
+              </SelectContent>
               </Select>
             </div>
           </div>

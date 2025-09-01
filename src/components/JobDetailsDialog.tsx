@@ -35,6 +35,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from "@/hooks/use-toast";
 import { useDevice } from "@/hooks/use-device";
 import { useNetwork } from '@/hooks/useNetwork';
+import { useCompanySettings } from '@/hooks/useCompanySettings';
 import { queueAction } from '@/lib/queue';
 import JobWorkflowStepper from './JobWorkflowStepper';
 import JobChecklist from './JobChecklist';
@@ -54,6 +55,7 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
   const { isMobile } = useDevice();
   const online = useNetwork();
   const navigate = useNavigate();
+  const { branding, settings } = useCompanySettings();
 
   const [loading, setLoading] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -543,8 +545,16 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <User className="w-4 h-4 text-blue-600" />
+                      <div 
+                        className="w-8 h-8 rounded-full flex items-center justify-center"
+                        style={{ 
+                          backgroundColor: `${branding?.primary_color || '#3B82F6'}20`,
+                        }}
+                      >
+                        <User 
+                          className="w-4 h-4" 
+                          style={{ color: branding?.primary_color || '#3B82F6' }}
+                        />
                       </div>
                       <h3 className="font-semibold text-gray-900">
                         {job.customers.name}
@@ -554,7 +564,8 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
                       variant="ghost"
                       size="sm"
                       onClick={handleCustomerClick}
-                      className="text-blue-600 hover:text-blue-800"
+                      style={{ color: branding?.primary_color || '#3B82F6' }}
+                      className="hover:opacity-80"
                     >
                       <ExternalLink className="w-4 h-4" />
                     </Button>
@@ -565,7 +576,11 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex items-center gap-1 text-green-700 border-green-300 hover:bg-green-50"
+                      className="flex items-center gap-1 hover:opacity-80"
+                      style={{
+                        color: branding?.secondary_color || '#64748B',
+                        borderColor: branding?.secondary_color || '#64748B'
+                      }}
                       onClick={() => {
                         const address = `${job.customers.address || ''}, ${job.customers.city || ''}, ${job.customers.state || ''}`.trim();
                         const mapsUrl = `https://maps.google.com/?q=${encodeURIComponent(address)}`;
@@ -591,7 +606,8 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
                     {job.customers.phone_mobile && (
                       <a
                         href={`tel:${job.customers.phone_mobile}`}
-                        className="flex items-center gap-1 text-blue-600 hover:underline"
+                        className="flex items-center gap-1 hover:underline"
+                        style={{ color: branding?.primary_color || '#3B82F6' }}
                       >
                         <Phone className="w-4 h-4" />
                         {job.customers.phone_mobile}
@@ -600,7 +616,8 @@ const JobDetailsDialog = ({ job, isOpen, onClose, onJobUpdate }: JobDetailsDialo
                     {job.customers.email && (
                       <a
                         href={`mailto:${job.customers.email}`}
-                        className="flex items-center gap-1 text-blue-600 hover:underline"
+                        className="flex items-center gap-1 hover:underline"
+                        style={{ color: branding?.primary_color || '#3B82F6' }}
                       >
                         <Mail className="w-4 h-4" />
                         {job.customers.email}

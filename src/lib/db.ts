@@ -14,6 +14,7 @@ export interface Job {
   scheduled_date: string;
   created_at: string;
   technician_id: string;
+  quote_id?: string; // Reference to originating quote
   customers?: {
     name: string;
     phone_mobile?: string;
@@ -23,8 +24,10 @@ export interface Job {
     short_address?: string;
   };
   total_cost?: number;
+  estimated_cost?: number; // From quote if converted
   started_at?: string;
   completed_at?: string;
+  quote_converted_at?: string; // Conversion timestamp
 }
 
 export interface JobDetail extends Job {
@@ -127,6 +130,34 @@ export interface JobChecklist {
   updated_at: string;
 }
 
+export interface Invoice {
+  id: string;
+  job_id: string;
+  quote_id?: string;
+  invoice_number: string;
+  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+  // ZATCA compliance fields
+  zatca_qr_code?: string;
+  vat_rate: number;
+  commercial_registration?: string;
+  // Cost breakdown
+  labor_cost: number;
+  parts_cost: number;
+  markup_amount: number;
+  subtotal: number;
+  vat_amount: number;
+  total_amount: number;
+  // Dates
+  issued_date: string;
+  due_date: string;
+  created_at: string;
+  updated_at: string;
+  // Customer info snapshot
+  customer_name: string;
+  customer_email?: string;
+  customer_address?: string;
+}
+
 export type ServiceProDB = IDBPDatabase<{
   jobs: Job;
   jobDetails: JobDetail;
@@ -135,12 +166,13 @@ export type ServiceProDB = IDBPDatabase<{
   checklistTemplates: ChecklistTemplate;
   quotes: any; // Will use Quote type from quotes.ts to avoid circular dependency
   quoteTemplates: any; // Will use QuoteTemplate type from quotes.ts
+  invoices: Invoice; // Phase 2: Invoice system
   queues: QueueItem;
   meta: MetaData;
 }>;
 
 const DB_NAME = 'servicepro-db';
-const DB_VERSION = 4; // Updated for quotes system
+const DB_VERSION = 5; // Updated for Phase 2: Jobs-Quotes-Invoices integration
 
 /**
  * Opens and returns the ServicePro IndexedDB database
@@ -156,6 +188,7 @@ export async function openServiceProDB(): Promise<ServiceProDB> {
       checklistTemplates: ChecklistTemplate;
       quotes: any;
       quoteTemplates: any;
+      invoices: Invoice;
       queues: QueueItem;
       meta: MetaData;
     }>(DB_NAME, DB_VERSION, {
@@ -261,6 +294,17 @@ export async function openServiceProDB(): Promise<ServiceProDB> {
           quoteTemplatesStore.createIndex('is_active', 'is_active');
           quoteTemplatesStore.createIndex('category', 'category');
           quoteTemplatesStore.createIndex('name', 'name');
+        }
+
+        // Create invoices store (version 5+)
+        if (oldVersion < 5 && !db.objectStoreNames.contains('invoices')) {
+          const invoicesStore = db.createObjectStore('invoices', { keyPath: 'id' });
+          invoicesStore.createIndex('job_id', 'job_id');
+          invoicesStore.createIndex('quote_id', 'quote_id');
+          invoicesStore.createIndex('status', 'status');
+          invoicesStore.createIndex('invoice_number', 'invoice_number');
+          invoicesStore.createIndex('customer_name', 'customer_name');
+          invoicesStore.createIndex('created_at', 'created_at');
         }
 
         // Create meta store

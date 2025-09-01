@@ -32,12 +32,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from "@/hooks/use-toast";
 import JobCreationDialog from './JobCreationDialog';
 import JobDetailsDialog from './JobDetailsDialog';
+import { useCompanySettings } from '@/hooks/useCompanySettings';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { JobCreationProvider } from '@/context/JobCreationContext';
 
 const JobManagement = () => {
   const { toast } = useToast();
   const { isAdmin } = useAuth();
+  const { branding, settings } = useCompanySettings();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
