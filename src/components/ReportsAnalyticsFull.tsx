@@ -1,7 +1,10 @@
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { ModernCard, StatsCard } from "@/components/ui/modern-card";
+import { ModernButton } from "@/components/ui/modern-button";
+import { MotionDiv, MotionContainer, AnimatedPage } from "@/components/ui/motion";
+import { ModernSkeleton } from "@/components/ui/modern-skeleton";
+import { AppShell, PageHeader, ContentArea } from "@/components/layout/AppShell";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
@@ -178,183 +181,300 @@ ${reportData.technicianPerformance.map((tech: any) =>
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
+      <AnimatedPage>
+        <PageHeader 
+          title="Reports & Analytics" 
+          description="Comprehensive business insights and performance metrics"
+        />
+        <ContentArea>
+          <MotionContainer className="space-y-8">
+            {/* Summary Cards Skeleton */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map(i => (
+                <MotionDiv key={i} variant="scaleIn" delay={i * 0.1}>
+                  <ModernCard variant="glass" className="p-6">
+                    <ModernSkeleton className="h-16 w-full" />
+                  </ModernCard>
+                </MotionDiv>
+              ))}
+            </div>
+            
+            {/* Chart Skeletons */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {[1, 2, 3, 4].map(i => (
+                <MotionDiv key={i} variant="fadeInUp" delay={i * 0.15}>
+                  <ModernCard variant="glass" className="p-6">
+                    <ModernSkeleton className="h-80 w-full" />
+                  </ModernCard>
+                </MotionDiv>
+              ))}
+            </div>
+          </MotionContainer>
+        </ContentArea>
+      </AnimatedPage>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Reports & Analytics</h2>
-          <p className="text-gray-600">Comprehensive business insights and performance metrics</p>
-        </div>
-        <div className="flex items-center space-x-4">
-          <Select value={dateRange} onValueChange={setDateRange}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7">Last 7 days</SelectItem>
-              <SelectItem value="30">Last 30 days</SelectItem>
-              <SelectItem value="90">Last 3 months</SelectItem>
-              <SelectItem value="365">Last year</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button onClick={generateReport}>
-            <Download className="w-4 h-4 mr-2" />
-            Download Report
-          </Button>
-        </div>
-      </div>
+    <AnimatedPage>
+      <PageHeader 
+        title="Reports & Analytics"
+        description="Comprehensive business insights and performance metrics"
+        actions={
+          <div className="flex items-center space-x-4">
+            <Select value={dateRange} onValueChange={setDateRange}>
+              <SelectTrigger className="w-48 bg-white/80 backdrop-blur-sm border-white/20 shadow-sm">
+                <Calendar className="w-4 h-4 mr-2" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-white/95 backdrop-blur-md border-white/20">
+                <SelectItem value="7">Last 7 days</SelectItem>
+                <SelectItem value="30">Last 30 days</SelectItem>
+                <SelectItem value="90">Last 3 months</SelectItem>
+                <SelectItem value="365">Last year</SelectItem>
+              </SelectContent>
+            </Select>
+            <ModernButton 
+              variant="gradient" 
+              onClick={generateReport}
+              leftIcon={<Download className="w-4 h-4" />}
+            >
+              Download Report
+            </ModernButton>
+          </div>
+        }
+      />
+      
+      <ContentArea>
+        <MotionContainer className="space-y-8">
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Jobs</p>
-                <p className="text-2xl font-bold">{reportData.summary.totalJobs}</p>
-              </div>
-              <FileText className="w-8 h-8 text-blue-600" />
+          {/* Modern Summary Cards */}
+          <MotionDiv variant="fadeInUp" delay={0.1}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <MotionDiv variant="scaleIn" delay={0.2}>
+                <StatsCard
+                  label="Total Jobs"
+                  value={reportData.summary.totalJobs}
+                  icon={<FileText className="w-6 h-6" />}
+                  className="bg-gradient-to-br from-blue-50 to-indigo-100 border-blue-200 hover:shadow-lg transition-all duration-300"
+                  variant="elevated"
+                />
+              </MotionDiv>
+              
+              <MotionDiv variant="scaleIn" delay={0.3}>
+                <StatsCard
+                  label="Total Revenue"
+                  value={`$${reportData.summary.totalRevenue.toFixed(2)}`}
+                  icon={<DollarSign className="w-6 h-6" />}
+                  trend={{ value: 12, isPositive: true }}
+                  className="bg-gradient-to-br from-green-50 to-emerald-100 border-green-200 hover:shadow-lg transition-all duration-300"
+                  variant="elevated"
+                />
+              </MotionDiv>
+              
+              <MotionDiv variant="scaleIn" delay={0.4}>
+                <StatsCard
+                  label="Completion Rate"
+                  value={`${reportData.summary.completionRate}%`}
+                  icon={<TrendingUp className="w-6 h-6" />}
+                  trend={{ value: reportData.summary.completionRate > 80 ? 5 : -2, isPositive: reportData.summary.completionRate > 80 }}
+                  className="bg-gradient-to-br from-purple-50 to-violet-100 border-purple-200 hover:shadow-lg transition-all duration-300"
+                  variant="elevated"
+                />
+              </MotionDiv>
+              
+              <MotionDiv variant="scaleIn" delay={0.5}>
+                <StatsCard
+                  label="Avg Duration"
+                  value={`${reportData.summary.avgJobDuration}m`}
+                  icon={<Clock className="w-6 h-6" />}
+                  className="bg-gradient-to-br from-orange-50 to-amber-100 border-orange-200 hover:shadow-lg transition-all duration-300"
+                  variant="elevated"
+                />
+              </MotionDiv>
             </div>
-          </CardContent>
-        </Card>
+          </MotionDiv>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-bold">${reportData.summary.totalRevenue.toFixed(2)}</p>
-              </div>
-              <DollarSign className="w-8 h-8 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Completion Rate</p>
-                <p className="text-2xl font-bold">{reportData.summary.completionRate}%</p>
-              </div>
-              <TrendingUp className="w-8 h-8 text-purple-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Avg Duration</p>
-                <p className="text-2xl font-bold">{reportData.summary.avgJobDuration}m</p>
-              </div>
-              <Clock className="w-8 h-8 text-orange-600" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Job Status Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Job Status Distribution</CardTitle>
-            <CardDescription>Breakdown of jobs by current status</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={reportData.jobStats}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="status" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="count" fill="#8884d8" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Revenue Trend */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Revenue Trend</CardTitle>
-            <CardDescription>Daily revenue over selected period</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={reportData.revenueData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip formatter={(value) => [`$${value}`, 'Revenue']} />
-                <Line type="monotone" dataKey="revenue" stroke="#8884d8" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Customer Types */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Customer Types</CardTitle>
-            <CardDescription>Distribution of residential vs commercial customers</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={reportData.customerTypes}
-                  dataKey="count"
-                  nameKey="type"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  label={({ type, percentage }) => `${type}: ${percentage}%`}
-                >
-                  {reportData.customerTypes.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Technician Performance */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Technician Performance</CardTitle>
-            <CardDescription>Job completion and revenue by technician</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {reportData.technicianPerformance.slice(0, 5).map((tech: any, index) => (
-                <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                  <div>
-                    <p className="font-medium">{tech.name}</p>
-                    <p className="text-sm text-gray-600">{tech.jobs} jobs completed</p>
+          {/* Modern Charts Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Job Status Chart */}
+            <MotionDiv variant="fadeInUp" delay={0.6}>
+              <ModernCard variant="glass" className="bg-gradient-to-br from-white/80 to-blue-50/50 backdrop-blur-xl border-white/30 shadow-xl hover:shadow-2xl transition-all duration-500">
+                <div className="p-6">
+                  <div className="mb-6">
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">Job Status Distribution</h3>
+                    <p className="text-gray-600">Breakdown of jobs by current status</p>
                   </div>
-                  <Badge variant="outline">
-                    ${tech.revenue.toFixed(2)}
-                  </Badge>
+                  <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/40">
+                    <ResponsiveContainer width="100%" height={320}>
+                      <BarChart data={reportData.jobStats} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e0e7ff" />
+                        <XAxis dataKey="status" tick={{ fontSize: 12, fill: '#6b7280' }} />
+                        <YAxis tick={{ fontSize: 12, fill: '#6b7280' }} />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                            border: 'none', 
+                            borderRadius: '12px',
+                            backdropFilter: 'blur(8px)',
+                            boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)'
+                          }} 
+                        />
+                        <Bar 
+                          dataKey="count" 
+                          fill="url(#blueGradient)" 
+                          radius={[8, 8, 0, 0]}
+                        />
+                        <defs>
+                          <linearGradient id="blueGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#3b82f6" />
+                            <stop offset="100%" stopColor="#6366f1" />
+                          </linearGradient>
+                        </defs>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
-              ))}
-              {reportData.technicianPerformance.length === 0 && (
-                <p className="text-gray-500 text-center py-4">No performance data available</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+              </ModernCard>
+            </MotionDiv>
+
+            {/* Revenue Trend */}
+            <MotionDiv variant="fadeInUp" delay={0.7}>
+              <ModernCard variant="glass" className="bg-gradient-to-br from-white/80 to-green-50/50 backdrop-blur-xl border-white/30 shadow-xl hover:shadow-2xl transition-all duration-500">
+                <div className="p-6">
+                  <div className="mb-6">
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">Revenue Trend</h3>
+                    <p className="text-gray-600">Daily revenue over selected period</p>
+                  </div>
+                  <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/40">
+                    <ResponsiveContainer width="100%" height={320}>
+                      <LineChart data={reportData.revenueData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e0f2fe" />
+                        <XAxis dataKey="date" tick={{ fontSize: 12, fill: '#6b7280' }} />
+                        <YAxis tick={{ fontSize: 12, fill: '#6b7280' }} />
+                        <Tooltip 
+                          formatter={(value) => [`$${value}`, 'Revenue']}
+                          contentStyle={{ 
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                            border: 'none', 
+                            borderRadius: '12px',
+                            backdropFilter: 'blur(8px)',
+                            boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)'
+                          }}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="revenue" 
+                          stroke="url(#greenGradient)" 
+                          strokeWidth={3}
+                          dot={{ fill: '#10b981', strokeWidth: 2, r: 6 }}
+                          activeDot={{ r: 8, fill: '#059669' }}
+                        />
+                        <defs>
+                          <linearGradient id="greenGradient" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%" stopColor="#10b981" />
+                            <stop offset="100%" stopColor="#059669" />
+                          </linearGradient>
+                        </defs>
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </ModernCard>
+            </MotionDiv>
+
+            {/* Customer Types */}
+            <MotionDiv variant="fadeInUp" delay={0.8}>
+              <ModernCard variant="glass" className="bg-gradient-to-br from-white/80 to-purple-50/50 backdrop-blur-xl border-white/30 shadow-xl hover:shadow-2xl transition-all duration-500">
+                <div className="p-6">
+                  <div className="mb-6">
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">Customer Types</h3>
+                    <p className="text-gray-600">Distribution of residential vs commercial customers</p>
+                  </div>
+                  <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/40">
+                    <ResponsiveContainer width="100%" height={320}>
+                      <PieChart>
+                        <Pie
+                          data={reportData.customerTypes}
+                          dataKey="count"
+                          nameKey="type"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={120}
+                          innerRadius={40}
+                          label={({ type, percentage }) => `${type}: ${percentage}%`}
+                          labelLine={false}
+                        >
+                          {reportData.customerTypes.map((entry, index) => (
+                            <Cell 
+                              key={`cell-${index}`} 
+                              fill={COLORS[index % COLORS.length]}
+                              stroke="#ffffff"
+                              strokeWidth={2}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                            border: 'none', 
+                            borderRadius: '12px',
+                            backdropFilter: 'blur(8px)',
+                            boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)'
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </ModernCard>
+            </MotionDiv>
+
+            {/* Technician Performance */}
+            <MotionDiv variant="fadeInUp" delay={0.9}>
+              <ModernCard variant="glass" className="bg-gradient-to-br from-white/80 to-orange-50/50 backdrop-blur-xl border-white/30 shadow-xl hover:shadow-2xl transition-all duration-500">
+                <div className="p-6">
+                  <div className="mb-6">
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">Technician Performance</h3>
+                    <p className="text-gray-600">Job completion and revenue by technician</p>
+                  </div>
+                  <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/40">
+                    <div className="space-y-4 max-h-80 overflow-y-auto">
+                      {reportData.technicianPerformance.slice(0, 5).map((tech: any, index) => (
+                        <MotionDiv key={index} variant="slideInLeft" delay={index * 0.1}>
+                          <div className="flex justify-between items-center p-4 bg-white/80 rounded-xl border border-white/40 hover:shadow-md transition-all duration-300 hover:scale-[1.02]">
+                            <div className="flex items-center gap-4">
+                              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                                <Users className="w-6 h-6 text-white" />
+                              </div>
+                              <div>
+                                <p className="font-semibold text-gray-800">{tech.name}</p>
+                                <p className="text-sm text-gray-600">{tech.jobs} jobs completed</p>
+                              </div>
+                            </div>
+                            <Badge className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-green-200 font-bold px-3 py-1">
+                              ${tech.revenue.toFixed(2)}
+                            </Badge>
+                          </div>
+                        </MotionDiv>
+                      ))}
+                      {reportData.technicianPerformance.length === 0 && (
+                        <div className="text-center py-12">
+                          <div className="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                            <Users className="w-8 h-8 text-gray-400" />
+                          </div>
+                          <p className="text-gray-500 font-medium">No performance data available</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </ModernCard>
+            </MotionDiv>
+          </div>
+        </MotionContainer>
+      </ContentArea>
+    </AnimatedPage>
   );
 };
 

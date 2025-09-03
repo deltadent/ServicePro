@@ -1,8 +1,11 @@
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ModernCard, StatsCard } from "@/components/ui/modern-card";
+import { ModernButton, FloatingActionButton } from "@/components/ui/modern-button";
+import { MotionDiv, MotionContainer, AnimatedPage } from "@/components/ui/motion";
+import { SkeletonStats, SkeletonCard } from "@/components/ui/modern-skeleton";
+import { AppShell, PageHeader, ContentArea, QuickStats } from "@/components/layout/AppShell";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
   Users,
@@ -16,7 +19,10 @@ import {
   BarChart3,
   Target,
   MapPin,
-  Activity
+  Activity,
+  Plus,
+  RefreshCw,
+  Download
 } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/hooks/use-toast";
@@ -154,297 +160,304 @@ const AdminDashboard = () => {
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
   };
 
+  const refreshDashboard = () => {
+    setLoading(true);
+    fetchDashboardData();
+  };
+
+  const quickStatsData = [
+    {
+      label: "Total Jobs",
+      value: stats.totalJobs,
+      trend: { value: 12, isPositive: true },
+      icon: <Wrench className="w-5 h-5" />
+    },
+    {
+      label: "Completed",
+      value: stats.completedJobs,
+      trend: { value: 8, isPositive: true },
+      icon: <CheckCircle className="w-5 h-5" />
+    },
+    {
+      label: "In Progress", 
+      value: stats.inProgressJobs,
+      icon: <Clock className="w-5 h-5" />
+    },
+    {
+      label: "Revenue",
+      value: `$${stats.monthlyRevenue.toFixed(0)}`,
+      trend: { value: 15, isPositive: true },
+      icon: <DollarSign className="w-5 h-5" />
+    }
+  ];
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
+      <AnimatedPage>
+        <PageHeader 
+          title="Admin Dashboard"
+          description="Comprehensive overview of your field service operations"
+        />
+        <ContentArea>
+          <MotionContainer className="space-y-8">
+            <SkeletonStats />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <SkeletonCard />
+              <SkeletonCard />
+            </div>
+          </MotionContainer>
+        </ContentArea>
+      </AnimatedPage>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <div className="text-center space-y-2">
-        <h2 className="text-3xl font-bold bg-gradient-to-r from-brand-blue-600 to-brand-blue-700 bg-clip-text text-transparent">
-          Admin Dashboard
-        </h2>
-        <p className="text-muted-foreground text-lg">Comprehensive overview of your field service operations</p>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-gradient-to-br from-brand-blue-500 to-brand-blue-600 text-white hover:shadow-medium transition-all duration-300 rounded-2xl group">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-brand-blue-100 text-sm font-medium">Total Jobs</p>
-                <p className="text-3xl font-bold group-hover:scale-105 transition-transform duration-200">{stats.totalJobs}</p>
-              </div>
-              <div className="p-3 bg-white/10 rounded-2xl group-hover:bg-white/20 transition-colors">
-                <Wrench className="w-8 h-8 text-white" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-brand-green-500 to-brand-green-600 text-white hover:shadow-medium transition-all duration-300 rounded-2xl group">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-brand-green-100 text-sm font-medium">Completed</p>
-                <p className="text-3xl font-bold group-hover:scale-105 transition-transform duration-200">{stats.completedJobs}</p>
-              </div>
-              <div className="p-3 bg-white/10 rounded-2xl group-hover:bg-white/20 transition-colors">
-                <CheckCircle className="w-8 h-8 text-white" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-brand-gold-500 to-brand-gold-600 text-white hover:shadow-medium transition-all duration-300 rounded-2xl group">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-brand-gold-100 text-sm font-medium">In Progress</p>
-                <p className="text-3xl font-bold group-hover:scale-105 transition-transform duration-200">{stats.inProgressJobs}</p>
-              </div>
-              <div className="p-3 bg-white/10 rounded-2xl group-hover:bg-white/20 transition-colors">
-                <Clock className="w-8 h-8 text-white" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white hover:shadow-medium transition-all duration-300 rounded-2xl group">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-100 text-sm font-medium">Revenue</p>
-                <p className="text-3xl font-bold group-hover:scale-105 transition-transform duration-200">${stats.monthlyRevenue.toFixed(0)}</p>
-              </div>
-              <div className="p-3 bg-white/10 rounded-2xl group-hover:bg-white/20 transition-colors">
-                <DollarSign className="w-8 h-8 text-white" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Secondary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="hover:shadow-medium transition-all duration-300 rounded-2xl border-0 shadow-soft">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm font-medium">Total Customers</p>
-                <p className="text-2xl font-bold text-foreground">{stats.totalCustomers}</p>
-                <p className="text-xs text-brand-green-600 font-medium">+12% from last month</p>
-              </div>
-              <div className="p-3 bg-brand-blue-100 rounded-2xl">
-                <Users className="w-6 h-6 text-brand-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-medium transition-all duration-300 rounded-2xl border-0 shadow-soft">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm font-medium">Active Technicians</p>
-                <p className="text-2xl font-bold text-foreground">{stats.totalTechnicians}</p>
-                <p className="text-xs text-brand-blue-600 font-medium">Field staff</p>
-              </div>
-              <div className="p-3 bg-brand-green-100 rounded-2xl">
-                <Wrench className="w-6 h-6 text-brand-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-medium transition-all duration-300 rounded-2xl border-0 shadow-soft">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm font-medium">Avg Completion</p>
-                <p className="text-2xl font-bold text-foreground">{formatDuration(stats.avgCompletionTime)}</p>
-                <p className="text-xs text-purple-600 font-medium">Per job</p>
-              </div>
-              <div className="p-3 bg-purple-100 rounded-2xl">
-                <TrendingUp className="w-6 h-6 text-purple-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Time Tracking Overview */}
-      <Card className="rounded-2xl border-0 shadow-soft">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Activity className="w-5 h-5 text-brand-blue-600" />
-            Time Tracking Overview
-          </CardTitle>
-          <CardDescription>Technician productivity and location compliance metrics</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
-              <div className="p-3 bg-blue-100 rounded-xl">
-                <Clock className="w-6 h-6 text-blue-600" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-blue-900">{timeStats.totalHoursWorked.toFixed(1)}</div>
-                <div className="text-sm text-blue-700">Total Hours</div>
-                <div className="text-xs text-blue-600">This month</div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl">
-              <div className="p-3 bg-green-100 rounded-xl">
-                <MapPin className="w-6 h-6 text-green-600" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-green-900">{timeStats.locationComplianceRate}%</div>
-                <div className="text-sm text-green-700">GPS Compliance</div>
-                <div className="text-xs text-green-600">Location verified</div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl">
-              <div className="p-3 bg-purple-100 rounded-xl">
-                <TrendingUp className="w-6 h-6 text-purple-600" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-purple-900">
-                  {timeStats.averageTimePerJob.toFixed(1)}m
-                </div>
-                <div className="text-sm text-purple-700">Avg Time per Job</div>
-                <div className="text-xs text-purple-600">Across all tracked</div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl">
-              <div className="p-3 bg-orange-100 rounded-xl">
-                <Target className="w-6 h-6 text-orange-600" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-orange-900">{timeStats.totalJobsTracked}</div>
-                <div className="text-sm text-orange-700">Jobs Tracked</div>
-                <div className="text-xs text-orange-600">With time data</div>
-              </div>
-            </div>
+    <AnimatedPage>
+      <PageHeader 
+        title="Admin Dashboard"
+        description="Comprehensive overview of your field service operations"
+        actions={
+          <div className="flex gap-3">
+            <ModernButton
+              variant="outline"
+              leftIcon={<RefreshCw className="w-4 h-4" />}
+              onClick={refreshDashboard}
+              loading={loading}
+            >
+              Refresh
+            </ModernButton>
+            <ModernButton
+              variant="outline"
+              leftIcon={<Download className="w-4 h-4" />}
+            >
+              Export
+            </ModernButton>
           </div>
-        </CardContent>
-      </Card>
+        }
+      />
+      
+      <ContentArea>
+        <MotionContainer className="space-y-8">{/* Stats Cards */}
+        <MotionDiv variant="fadeInUp">
+          <QuickStats stats={quickStatsData} />
+        </MotionDiv>
 
-      {/* Job Progress Overview */}
-      <Card className="rounded-2xl border-0 shadow-soft">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <BarChart3 className="w-5 h-5 text-brand-blue-600" />
-            Job Status Overview
-          </CardTitle>
-          <CardDescription>Current distribution of job statuses</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-foreground">Completed Jobs</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">{stats.completedJobs}/{stats.totalJobs}</span>
-                  <div className="w-2 h-2 bg-brand-green-500 rounded-full"></div>
-                </div>
-              </div>
-              <Progress value={stats.totalJobs > 0 ? (stats.completedJobs / stats.totalJobs) * 100 : 0} className="h-3 rounded-full" />
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-foreground">In Progress</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">{stats.inProgressJobs}/{stats.totalJobs}</span>
-                  <div className="w-2 h-2 bg-brand-gold-500 rounded-full"></div>
-                </div>
-              </div>
-              <Progress
-                value={stats.totalJobs > 0 ? (stats.inProgressJobs / stats.totalJobs) * 100 : 0}
-                className="h-3 rounded-full"
-              />
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-foreground">Scheduled</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">{stats.pendingJobs}/{stats.totalJobs}</span>
-                  <div className="w-2 h-2 bg-brand-blue-500 rounded-full"></div>
-                </div>
-              </div>
-              <Progress
-                value={stats.totalJobs > 0 ? (stats.pendingJobs / stats.totalJobs) * 100 : 0}
-                className="h-3 rounded-full"
-              />
-            </div>
+        {/* Secondary Stats */}
+        <MotionDiv variant="fadeInUp" delay={0.2}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <StatsCard
+              title="Total Customers"
+              value={stats.totalCustomers}
+              description="+12% from last month"
+              trend={{ value: 12, isPositive: true }}
+              icon={<Users className="w-5 h-5" />}
+            />
+            
+            <StatsCard
+              title="Active Technicians"
+              value={stats.totalTechnicians}
+              description="Field staff"
+              icon={<Wrench className="w-5 h-5" />}
+            />
+            
+            <StatsCard
+              title="Avg Completion"
+              value={formatDuration(stats.avgCompletionTime)}
+              description="Per job"
+              icon={<TrendingUp className="w-5 h-5" />}
+            />
           </div>
-        </CardContent>
-      </Card>
+        </MotionDiv>
 
-      {/* Recent Jobs */}
-      <Card className="rounded-2xl border-0 shadow-soft">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Calendar className="w-5 h-5 text-brand-blue-600" />
-            Recent Jobs
-          </CardTitle>
-          <CardDescription>Latest job assignments and updates</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {recentJobs.map((job, index) => (
-              <div
-                key={job.id}
-                className={`flex flex-col md:flex-row items-start md:items-center justify-between p-4 rounded-2xl transition-all duration-200 hover:shadow-soft ${
-                  index % 2 === 0 ? 'bg-gray-50/50' : 'bg-white'
-                } hover:bg-white`}
-              >
-                <div className="flex items-center space-x-4 flex-1 mb-2 md:mb-0">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-semibold text-sm text-foreground">{job.title}</h4>
-                      <Badge className={`${getStatusColor(job.status)} text-xs px-2 py-1`} variant="outline">
-                        {job.status?.replace('_', ' ')}
-                      </Badge>
+        {/* Time Tracking Overview */}
+        <MotionDiv variant="fadeInUp" delay={0.4}>
+          <ModernCard variant="elevated">
+            <div className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Activity className="w-5 h-5 text-primary" />
+                <h3 className="text-lg font-semibold">Time Tracking Overview</h3>
+              </div>
+              <p className="text-muted-foreground mb-6">Technician productivity and location compliance metrics</p>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="glass-subtle p-4 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <Clock className="w-5 h-5 text-blue-600" />
                     </div>
-                    <p className="text-xs text-muted-foreground mb-1">
-                      Customer: {job.customers?.name} | Technician: {job.profiles?.full_name || 'Unassigned'}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {job.scheduled_date ? new Date(job.scheduled_date).toLocaleDateString() : 'No date set'}
-                    </p>
+                    <div>
+                      <div className="text-xl font-bold text-foreground">{timeStats.totalHoursWorked.toFixed(1)}</div>
+                      <div className="text-sm text-muted-foreground">Total Hours</div>
+                    </div>
                   </div>
                 </div>
-                <div className="text-right w-full md:w-auto mt-2 md:mt-0">
-                  <p className="text-sm font-bold text-foreground">${(job.total_cost || 0).toFixed(2)}</p>
-                  <p className="text-xs text-muted-foreground font-medium">{job.job_number}</p>
-                </div>
-              </div>
-            ))}
 
-            {recentJobs.length === 0 && (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Calendar className="w-8 h-8 text-gray-400" />
+                <div className="glass-subtle p-4 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <MapPin className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <div className="text-xl font-bold text-foreground">{timeStats.locationComplianceRate}%</div>
+                      <div className="text-sm text-muted-foreground">GPS Compliance</div>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-muted-foreground font-medium">No recent jobs</p>
-                <p className="text-sm text-muted-foreground mt-1">New jobs will appear here</p>
+
+                <div className="glass-subtle p-4 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-purple-100 rounded-lg">
+                      <TrendingUp className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <div className="text-xl font-bold text-foreground">
+                        {timeStats.averageTimePerJob.toFixed(1)}m
+                      </div>
+                      <div className="text-sm text-muted-foreground">Avg Time per Job</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="glass-subtle p-4 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-orange-100 rounded-lg">
+                      <Target className="w-5 h-5 text-orange-600" />
+                    </div>
+                    <div>
+                      <div className="text-xl font-bold text-foreground">{timeStats.totalJobsTracked}</div>
+                      <div className="text-sm text-muted-foreground">Jobs Tracked</div>
+                    </div>
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+            </div>
+          </ModernCard>
+        </MotionDiv>
+
+        {/* Job Progress Overview */}
+        <MotionDiv variant="fadeInUp" delay={0.6}>
+          <ModernCard variant="floating">
+            <div className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <BarChart3 className="w-5 h-5 text-primary" />
+                <h3 className="text-lg font-semibold">Job Status Overview</h3>
+              </div>
+              <p className="text-muted-foreground mb-6">Current distribution of job statuses</p>
+              
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">Completed Jobs</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">{stats.completedJobs}/{stats.totalJobs}</span>
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    </div>
+                  </div>
+                  <Progress 
+                    value={stats.totalJobs > 0 ? (stats.completedJobs / stats.totalJobs) * 100 : 0} 
+                    className="h-3 rounded-full"
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">In Progress</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">{stats.inProgressJobs}/{stats.totalJobs}</span>
+                      <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                    </div>
+                  </div>
+                  <Progress
+                    value={stats.totalJobs > 0 ? (stats.inProgressJobs / stats.totalJobs) * 100 : 0}
+                    className="h-3 rounded-full"
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">Scheduled</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">{stats.pendingJobs}/{stats.totalJobs}</span>
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    </div>
+                  </div>
+                  <Progress
+                    value={stats.totalJobs > 0 ? (stats.pendingJobs / stats.totalJobs) * 100 : 0}
+                    className="h-3 rounded-full"
+                  />
+                </div>
+              </div>
+            </div>
+          </ModernCard>
+        </MotionDiv>
+
+        {/* Recent Jobs */}
+        <MotionDiv variant="fadeInUp" delay={0.8}>
+          <ModernCard variant="glass">
+            <div className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Calendar className="w-5 h-5 text-primary" />
+                <h3 className="text-lg font-semibold">Recent Jobs</h3>
+              </div>
+              <p className="text-muted-foreground mb-6">Latest job assignments and updates</p>
+              
+              <div className="space-y-3">
+                {recentJobs.map((job, index) => (
+                  <MotionDiv
+                    key={job.id}
+                    variant="fadeInUp"
+                    delay={index * 0.1}
+                    className="glass-subtle p-4 rounded-xl hover:bg-accent/50 transition-all duration-200 group"
+                  >
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
+                      <div className="flex-1 mb-2 md:mb-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h4 className="font-semibold text-sm group-hover:text-primary transition-colors">
+                            {job.title}
+                          </h4>
+                          <Badge 
+                            variant={job.status === 'completed' ? 'default' : 'secondary'}
+                            className="text-xs"
+                          >
+                            {job.status?.replace('_', ' ')}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-1">
+                          {job.customers?.name} • {job.profiles?.full_name || 'Unassigned'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {job.scheduled_date ? new Date(job.scheduled_date).toLocaleDateString() : 'No date set'}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold">${(job.total_cost || 0).toFixed(2)}</p>
+                        <p className="text-xs text-muted-foreground">{job.job_number}</p>
+                      </div>
+                    </div>
+                  </MotionDiv>
+                ))}
+
+                {recentJobs.length === 0 && (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 glass-subtle rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <Calendar className="w-8 h-8 text-muted-foreground" />
+                    </div>
+                    <p className="font-medium">No recent jobs</p>
+                    <p className="text-sm text-muted-foreground mt-1">New jobs will appear here</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </ModernCard>
+        </MotionDiv>
+
+        {/* Floating Action Button */}
+        <FloatingActionButton position="bottom-right">
+          <Plus className="w-5 h-5" />
+        </FloatingActionButton>
+        
+        </MotionContainer>
+      </ContentArea>
+    </AnimatedPage>
   );
 };
 

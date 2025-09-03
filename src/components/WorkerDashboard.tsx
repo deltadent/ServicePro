@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ModernCard, StatsCard } from "@/components/ui/modern-card";
+import { ModernButton } from "@/components/ui/modern-button";
+import { MotionDiv, MotionContainer, AnimatedPage } from "@/components/ui/motion";
+import { ModernSkeleton, SkeletonCard } from "@/components/ui/modern-skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Calendar,
   Clock,
@@ -256,324 +257,365 @@ const WorkerDashboard = () => {
   // Loading skeleton
   if (loading) {
     return (
-      <div className="h-screen bg-gray-50 flex flex-col">
-        {/* Header skeleton */}
-        <div className="bg-white border-b p-4">
-          <Skeleton className="h-8 w-32 mb-2" />
-          <Skeleton className="h-4 w-48" />
-        </div>
+      <AnimatedPage>
+        <div className="h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex flex-col">
+          {/* Header skeleton */}
+          <div className="bg-white/80 backdrop-blur-sm border-b p-4">
+            <ModernSkeleton className="h-8 w-32 mb-2" />
+            <ModernSkeleton className="h-4 w-48" />
+          </div>
 
-        {/* Compact tracker skeleton */}
-        <div className="p-4">
-          <Skeleton className="h-12 w-full rounded-lg" />
-        </div>
+          {/* Compact tracker skeleton */}
+          <div className="p-4">
+            <ModernSkeleton className="h-12 w-full rounded-xl" />
+          </div>
 
-        {/* Job list skeleton */}
-        <div className="flex-1 p-4 space-y-3">
-          {[1, 2, 3].map(i => (
-            <Skeleton key={i} className="h-20 w-full rounded-lg" />
-          ))}
+          {/* Job list skeleton */}
+          <div className="flex-1 p-4 space-y-3">
+            <MotionContainer>
+              {[1, 2, 3].map(i => (
+                <MotionDiv key={i} variant="fadeInUp" delay={i * 0.1}>
+                  <SkeletonCard />
+                </MotionDiv>
+              ))}
+            </MotionContainer>
+          </div>
         </div>
-      </div>
+      </AnimatedPage>
     );
   }
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col">
-      {/* Offline Banner */}
-      {!online && (
-        <div className="bg-orange-100 border-b border-orange-300 px-4 py-2 flex items-center gap-2">
-          <WifiOff className="w-4 h-4 text-orange-600" />
-          <span className="text-sm text-orange-800">{OFFLINE_MESSAGES.OFFLINE_BANNER}</span>
-        </div>
-      )}
-
-      {/* Compact Header */}
-      <div className="bg-white border-b sticky top-0 z-40">
-        <div className="px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <User className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <h1 className="text-lg font-semibold text-gray-900">Dashboard</h1>
-                <p className="text-sm text-gray-600">Worker Portal</p>
-              </div>
+    <AnimatedPage>
+      <div className="h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex flex-col">
+        {/* Offline Banner */}
+        {!online && (
+          <MotionDiv variant="slideInDown" className="bg-gradient-to-r from-orange-100 to-amber-50 border-b border-orange-200 px-4 py-3 flex items-center gap-2 backdrop-blur-sm">
+            <div className="w-6 h-6 bg-orange-200 rounded-full flex items-center justify-center">
+              <WifiOff className="w-3 h-3 text-orange-600" />
             </div>
+            <span className="text-sm font-medium text-orange-800">{OFFLINE_MESSAGES.OFFLINE_BANNER}</span>
+          </MotionDiv>
+        )}
 
-            <div className="flex items-center gap-2">
-              {syncing && (
-                <RefreshCw className="w-4 h-4 animate-spin text-gray-400" />
-              )}
-              <Badge variant="outline" className="hidden sm:inline-flex">
-                {stats.pendingJobs} active
-              </Badge>
+        {/* Modern Header */}
+        <MotionDiv variant="slideInDown" className="bg-white/90 backdrop-blur-md border-b border-white/20 sticky top-0 z-40 shadow-sm">
+          <div className="px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <User className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Dashboard</h1>
+                  <p className="text-sm text-gray-500 font-medium">Worker Portal</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {syncing && (
+                  <div className="w-8 h-8 bg-blue-50 rounded-full flex items-center justify-center">
+                    <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
+                  </div>
+                )}
+                <Badge variant="outline" className="hidden sm:inline-flex bg-white/80 backdrop-blur-sm border-blue-200 text-blue-700 font-semibold">
+                  {stats.pendingJobs} active
+                </Badge>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Search and Filters */}
-        <div className="px-4 pb-3">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder="Search jobs..."
-                value={rawSearch}
-                onChange={(e) => setRawSearch(e.target.value)}
-                className="pl-10 h-10 border-gray-200"
-              />
-            </div>
+          {/* Modern Search and Filters */}
+          <div className="px-4 pb-4">
+            <MotionDiv variant="fadeInUp" delay={0.1} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Search jobs..."
+                  value={rawSearch}
+                  onChange={(e) => setRawSearch(e.target.value)}
+                  className="pl-12 h-12 border-gray-200 rounded-xl bg-white/80 backdrop-blur-sm shadow-sm focus:shadow-md transition-all duration-200"
+                />
+              </div>
 
-            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 flex-wrap">
-              {[
-                { key: 'all', label: 'All' },
-                { key: 'scheduled', label: 'Ready' },
-                { key: 'in_progress', label: 'Active' },
-                { key: 'completed', label: 'Done' }
-              ].map(({ key, label }) => (
-                <Button
-                  key={key}
-                  size="sm"
-                  variant={statusFilter === key ? 'default' : 'ghost'}
-                  className="h-8 px-3 text-xs flex-grow"
-                  onClick={() => setStatusFilter(key)}
-                >
-                  {label}
-                </Button>
-              ))}
-            </div>
+              <div className="flex items-center gap-1 bg-white/80 backdrop-blur-sm rounded-xl p-1 shadow-sm border border-gray-100 flex-wrap">
+                {[
+                  { key: 'all', label: 'All' },
+                  { key: 'scheduled', label: 'Ready' },
+                  { key: 'in_progress', label: 'Active' },
+                  { key: 'completed', label: 'Done' }
+                ].map(({ key, label }) => (
+                  <ModernButton
+                    key={key}
+                    size="sm"
+                    variant={statusFilter === key ? 'gradient' : 'ghost'}
+                    className="h-9 px-4 text-sm flex-grow rounded-lg"
+                    onClick={() => setStatusFilter(key)}
+                  >
+                    {label}
+                  </ModernButton>
+                ))}
+              </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSync}
-              disabled={syncing || !online}
-              className="h-10 w-full sm:w-auto"
-            >
-              <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-            </Button>
+              <ModernButton
+                variant="outline"
+                size="sm"
+                onClick={handleSync}
+                disabled={syncing || !online}
+                className="h-12 w-full sm:w-auto rounded-xl bg-white/80 backdrop-blur-sm"
+                leftIcon={<RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />}
+              >
+                Sync
+              </ModernButton>
+            </MotionDiv>
           </div>
-        </div>
-      </div>
+        </MotionDiv>
 
-      {/* Compact Time Tracker */}
-      <div className="px-4 py-3 bg-white border-b">
-        <CompactTimeTracker
-          availableJobs={myJobs}
-          currentActiveJob={currentActiveJob}
-          onTimeEntryUpdate={fetchWorkerData}
-        />
-      </div>
+        {/* Modern Compact Time Tracker */}
+        <MotionDiv variant="fadeInUp" delay={0.2} className="px-4 py-4 bg-white/60 backdrop-blur-sm border-b border-white/20">
+          <ModernCard variant="glass" className="p-1">
+            <CompactTimeTracker
+              availableJobs={myJobs}
+              currentActiveJob={currentActiveJob}
+              onTimeEntryUpdate={fetchWorkerData}
+            />
+          </ModernCard>
+        </MotionDiv>
 
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto">
-        {/* Status Summary */}
-        <div className="px-4 py-3 bg-white border-b">
-          <div className="grid grid-cols-3 gap-3">
-            <div className="text-center">
-              <div className="text-xl font-bold text-blue-600">{stats.totalScheduled}</div>
-              <div className="text-xs text-gray-600">Ready</div>
+          {/* Modern Status Summary */}
+          <MotionDiv variant="fadeInUp" delay={0.3} className="px-4 py-4 bg-white/40 backdrop-blur-sm border-b border-white/10">
+            <div className="grid grid-cols-3 gap-4">
+              <MotionDiv variant="scaleIn" delay={0.1} className="text-center">
+                <StatsCard 
+                  label="Ready" 
+                  value={stats.totalScheduled}
+                  variant="compact"
+                  className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100"
+                />
+              </MotionDiv>
+              <MotionDiv variant="scaleIn" delay={0.2} className="text-center">
+                <StatsCard 
+                  label="Active" 
+                  value={groupedJobs.inProgress.length}
+                  variant="compact"
+                  className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-100"
+                  trend={{ value: 0, isPositive: true }}
+                />
+              </MotionDiv>
+              <MotionDiv variant="scaleIn" delay={0.3} className="text-center">
+                <StatsCard 
+                  label="Done" 
+                  value={groupedJobs.completed.length}
+                  variant="compact"
+                  className="bg-gradient-to-br from-gray-50 to-slate-50 border-gray-100"
+                />
+              </MotionDiv>
             </div>
-            <div className="text-center">
-              <div className="text-xl font-bold text-green-600">{groupedJobs.inProgress.length}</div>
-              <div className="text-xs text-gray-600">Active</div>
-            </div>
-            <div className="text-center">
-              <div className="text-xl font-bold text-gray-600">{groupedJobs.completed.length}</div>
-              <div className="text-xs text-gray-600">Done</div>
-            </div>
+          </MotionDiv>
+
+          {/* Modern Jobs List */}
+          <div className="p-4 space-y-6">
+            <MotionContainer className="space-y-6">
+              {/* In Progress Jobs */}
+              {groupedJobs.inProgress.length > 0 && (
+                <MotionDiv variant="fadeInUp" delay={0.4}>
+                  <h2 className="text-base font-bold text-gray-800 mb-4 flex items-center gap-3">
+                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg"></div>
+                    <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">Active Jobs</span>
+                  </h2>
+                  <div className="space-y-4">
+                    {groupedJobs.inProgress.map((job: any, index: number) => (
+                      <MotionDiv key={job.id} variant="slideInLeft" delay={index * 0.1}>
+                        <ModernCard
+                          variant="floating"
+                          animated
+                          className="border-l-4 border-l-green-500 cursor-pointer hover:border-l-green-600 transition-all duration-300 hover:shadow-xl bg-gradient-to-r from-green-50/50 to-emerald-50/30"
+                          onClick={() => {
+                            setSelectedJob(job);
+                            setShowJobDetails(true);
+                          }}
+                        >
+                          <div className="p-5">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="text-base font-bold text-gray-900 truncate mb-1">
+                                  {job.title}
+                                </h3>
+                                <p className="text-sm text-gray-600 font-medium">
+                                  Job #{job.job_number}
+                                </p>
+                              </div>
+                              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                <ChevronRight className="w-4 h-4 text-green-600" />
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 mb-3">
+                              <Badge className={`${getPriorityColor(job.priority)} font-semibold`}>
+                                {job.priority}
+                              </Badge>
+                              <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
+                                Started {formatTime(job.started_at)}
+                              </Badge>
+                            </div>
+
+                            {job.customers?.name && (
+                              <div className="flex items-center gap-2 text-sm text-gray-600 bg-white/60 rounded-lg px-3 py-2">
+                                <User className="w-4 h-4 text-green-600" />
+                                <span className="font-medium">{job.customers.name}</span>
+                              </div>
+                            )}
+                          </div>
+                        </ModernCard>
+                      </MotionDiv>
+                    ))}
+                  </div>
+                </MotionDiv>
+              )}
+
+              {/* Scheduled Jobs */}
+              {groupedJobs.scheduled.length > 0 && (
+                <MotionDiv variant="fadeInUp" delay={0.5}>
+                  <h2 className="text-base font-bold text-gray-800 mb-4 flex items-center gap-3">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full shadow-lg"></div>
+                    <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Scheduled Jobs</span>
+                  </h2>
+                  <div className="space-y-4">
+                    {groupedJobs.scheduled.map((job: any, index: number) => (
+                      <MotionDiv key={job.id} variant="slideInLeft" delay={index * 0.1}>
+                        <ModernCard
+                          variant="elevated"
+                          animated
+                          className="cursor-pointer hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-blue-50/50 to-indigo-50/30"
+                          onClick={() => {
+                            setSelectedJob(job);
+                            setShowJobDetails(true);
+                          }}
+                        >
+                          <div className="p-5">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="text-base font-bold text-gray-900 truncate mb-1">
+                                  {job.title}
+                                </h3>
+                                <p className="text-sm text-gray-600 font-medium">
+                                  Job #{job.job_number}
+                                </p>
+                              </div>
+                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                <ChevronRight className="w-4 h-4 text-blue-600" />
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 mb-3">
+                              <Badge className={`${getPriorityColor(job.priority)} font-semibold`}>
+                                {job.priority}
+                              </Badge>
+                              <Badge className={`${getStatusBadge(job.status)} font-semibold`}>
+                                {job.status.replace('_', ' ')}
+                              </Badge>
+                            </div>
+
+                            {job.scheduled_date && (
+                              <div className="flex items-center gap-2 text-sm text-gray-600 bg-white/60 rounded-lg px-3 py-2">
+                                <Calendar className="w-4 h-4 text-blue-600" />
+                                <span className="font-medium">{new Date(job.scheduled_date).toLocaleDateString()}</span>
+                              </div>
+                            )}
+                          </div>
+                        </ModernCard>
+                      </MotionDiv>
+                    ))}
+                  </div>
+                </MotionDiv>
+              )}
+
+              {/* Completed Jobs */}
+              {groupedJobs.completed.length > 0 && (
+                <MotionDiv variant="fadeInUp" delay={0.6}>
+                  <h2 className="text-base font-bold text-gray-800 mb-4 flex items-center gap-3">
+                    <div className="w-3 h-3 bg-gray-400 rounded-full shadow-lg"></div>
+                    <span className="bg-gradient-to-r from-gray-600 to-slate-600 bg-clip-text text-transparent">Completed Today</span>
+                  </h2>
+                  <div className="space-y-4">
+                    {groupedJobs.completed.slice(0, 3).map((job: any, index: number) => (
+                      <MotionDiv key={job.id} variant="slideInLeft" delay={index * 0.1}>
+                        <ModernCard
+                          variant="glass"
+                          animated
+                          className="border-l-4 border-l-gray-400 cursor-pointer hover:border-l-gray-500 transition-all duration-300 hover:shadow-lg bg-gradient-to-r from-gray-50/50 to-slate-50/30"
+                          onClick={() => {
+                            setSelectedJob(job);
+                            setShowJobDetails(true);
+                          }}
+                        >
+                          <div className="p-5">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="text-base font-bold text-gray-900 truncate mb-1">
+                                  {job.title}
+                                </h3>
+                                <p className="text-sm text-gray-600 font-medium">
+                                  Job #{job.job_number}
+                                </p>
+                              </div>
+                              <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                                <ChevronRight className="w-4 h-4 text-gray-600" />
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 mb-3">
+                              <Badge className="bg-gradient-to-r from-gray-100 to-slate-100 text-gray-800 font-semibold border border-gray-200">
+                                ✓ Completed
+                              </Badge>
+                            </div>
+
+                            {job.completed_at && (
+                              <div className="flex items-center gap-2 text-sm text-gray-600 bg-white/60 rounded-lg px-3 py-2">
+                                <Clock className="w-4 h-4 text-gray-600" />
+                                <span className="font-medium">{formatTime(job.completed_at)}</span>
+                              </div>
+                            )}
+                          </div>
+                        </ModernCard>
+                      </MotionDiv>
+                    ))}
+                  </div>
+                </MotionDiv>
+              )}
+
+              {/* Empty State */}
+              {filteredJobs.length === 0 && (
+                <MotionDiv variant="fadeInUp" delay={0.4} className="text-center py-16">
+                  <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                    <Wrench className="w-10 h-10 text-gray-400" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-3">No jobs found</h3>
+                  <p className="text-base text-gray-600 max-w-sm mx-auto">
+                    {rawSearch ? 'Try adjusting your search terms' : 'All caught up for now! Great work!'}
+                  </p>
+                </MotionDiv>
+              )}
+            </MotionContainer>
           </div>
-        </div>
 
-        {/* Jobs List */}
-        <div className="p-4 space-y-3">
-          {/* In Progress Jobs */}
-          {groupedJobs.inProgress.length > 0 && (
-            <div>
-              <h2 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                Active Jobs
-              </h2>
-              <div className="space-y-3">
-                {groupedJobs.inProgress.map((job: any) => (
-                  <Card
-                    key={job.id}
-                    className="shadow-sm border-l-4 border-l-green-500 cursor-pointer hover:border-l-green-600 transition-colors"
-                    onClick={() => {
-                      setSelectedJob(job);
-                      setShowJobDetails(true);
-                    }}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-sm font-semibold text-gray-900 truncate">
-                            {job.title}
-                          </h3>
-                          <p className="text-xs text-gray-600 mt-1">
-                            Job #{job.job_number}
-                          </p>
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Badge className={getPriorityColor(job.priority)}>
-                            {job.priority}
-                          </Badge>
-                          <Badge variant="secondary" className="text-xs">
-                            Started {formatTime(job.started_at)}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      {job.customers?.name && (
-                        <p className="text-xs text-gray-600 mt-2 flex items-center gap-1">
-                          <User className="w-3 h-3" />
-                          {job.customers.name}
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Scheduled Jobs */}
-          {groupedJobs.scheduled.length > 0 && (
-            <div>
-              <h2 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                Scheduled Jobs
-              </h2>
-              <div className="space-y-3">
-                {groupedJobs.scheduled.map((job: any) => (
-                  <Card
-                    key={job.id}
-                    className="shadow-sm cursor-pointer hover:shadow-md transition-all"
-                    onClick={() => {
-                      setSelectedJob(job);
-                      setShowJobDetails(true);
-                    }}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-sm font-semibold text-gray-900 truncate">
-                            {job.title}
-                          </h3>
-                          <p className="text-xs text-gray-600 mt-1">
-                            Job #{job.job_number}
-                          </p>
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Badge className={getPriorityColor(job.priority)}>
-                            {job.priority}
-                          </Badge>
-                          <Badge className={getStatusBadge(job.status)}>
-                            {job.status.replace('_', ' ')}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      {job.scheduled_date && (
-                        <p className="text-xs text-gray-600 mt-2 flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {new Date(job.scheduled_date).toLocaleDateString()}
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Completed Jobs */}
-          {groupedJobs.completed.length > 0 && (
-            <div>
-              <h2 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                Completed Today
-              </h2>
-              <div className="space-y-3">
-                {groupedJobs.completed.slice(0, 3).map((job: any) => (
-                  <Card
-                    key={job.id}
-                    className="shadow-sm border-l-4 border-l-gray-400 cursor-pointer hover:border-l-gray-500 transition-colors"
-                    onClick={() => {
-                      setSelectedJob(job);
-                      setShowJobDetails(true);
-                    }}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-sm font-semibold text-gray-900 truncate">
-                            {job.title}
-                          </h3>
-                          <p className="text-xs text-gray-600 mt-1">
-                            Job #{job.job_number}
-                          </p>
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <Badge className="bg-gray-100 text-gray-800">
-                          Completed
-                        </Badge>
-                      </div>
-
-                      {job.completed_at && (
-                        <p className="text-xs text-gray-600 mt-2 flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {formatTime(job.completed_at)}
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Empty State */}
-          {filteredJobs.length === 0 && (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <Wrench className="w-8 h-8 text-gray-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No jobs found</h3>
-              <p className="text-sm text-gray-600">
-                {rawSearch ? 'Try adjusting your search' : 'All caught up for now!'}
-              </p>
-            </div>
-          )}
+        {/* Job Details Dialog */}
+        {showJobDetails && selectedJob && (
+          <JobDetailsDialog
+            job={selectedJob}
+            isOpen={showJobDetails}
+            onClose={() => {
+              setShowJobDetails(false);
+              setSelectedJob(null);
+            }}
+            onJobUpdate={fetchWorkerData}
+          />
+        )}
         </div>
       </div>
-
-      {/* Job Details Dialog */}
-      {showJobDetails && selectedJob && (
-        <JobDetailsDialog
-          job={selectedJob}
-          isOpen={showJobDetails}
-          onClose={() => {
-            setShowJobDetails(false);
-            setSelectedJob(null);
-          }}
-          onJobUpdate={fetchWorkerData}
-        />
-      )}
-    </div>
+    </AnimatedPage>
   );
 };
 

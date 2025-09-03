@@ -119,6 +119,19 @@ async function processNoteAction(action: QueueItem): Promise<void> {
     throw new Error('Invalid note payload: missing jobId or text');
   }
 
+  // First, verify that the job exists
+  const { data: job, error: jobCheckError } = await supabase
+    .from('jobs')
+    .select('id')
+    .eq('id', payload.jobId)
+    .single();
+
+  if (jobCheckError || !job) {
+    console.warn(`Job ${payload.jobId} not found, skipping note`);
+    // Don't throw error - just skip this note since the job doesn't exist
+    return;
+  }
+
   const { data, error } = await supabase
     .from('job_notes')
     .insert({
@@ -129,7 +142,14 @@ async function processNoteAction(action: QueueItem): Promise<void> {
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    // If we get a foreign key error, skip this note
+    if (error.code === '23503') {
+      console.warn(`Foreign key constraint error for job ${payload.jobId}, skipping note`);
+      return;
+    }
+    throw error;
+  }
 
   // Update local cache if job detail is cached
   await updateJobCacheWithNote(payload.jobId, data);
@@ -146,13 +166,29 @@ async function processPhotoAction(action: QueueItem): Promise<void> {
     throw new Error('Invalid photo payload: missing jobId, file, or fileName');
   }
 
+  // First, verify that the job exists
+  const { data: job, error: jobCheckError } = await supabase
+    .from('jobs')
+    .select('id')
+    .eq('id', payload.jobId)
+    .single();
+
+  if (jobCheckError || !job) {
+    console.warn(`Job ${payload.jobId} not found, skipping photo upload`);
+    // Don't throw error - just skip this photo since the job doesn't exist
+    return;
+  }
+
   // Upload file to Supabase Storage
   const filePath = `job-photos/${payload.jobId}/${Date.now()}-${payload.fileName}`;
   const { data: uploadData, error: uploadError } = await supabase.storage
     .from('job-photos')
     .upload(filePath, payload.file);
 
-  if (uploadError) throw uploadError;
+  if (uploadError) {
+    console.error('Storage upload failed:', uploadError);
+    throw uploadError;
+  }
 
   // Get public URL
   const { data: urlData } = supabase.storage
@@ -182,7 +218,17 @@ async function processPhotoAction(action: QueueItem): Promise<void> {
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    // If we still get a foreign key error, clean up the uploaded file
+    if (error.code === '23503') {
+      console.warn(`Foreign key constraint error for job ${payload.jobId}, cleaning up uploaded file`);
+      await supabase.storage
+        .from('job-photos')
+        .remove([filePath]);
+      return; // Skip this photo
+    }
+    throw error;
+  }
 
   // Update local cache if job detail is cached
   await updateJobCacheWithPhoto(payload.jobId, data);
@@ -199,7 +245,20 @@ async function processCheckAction(action: QueueItem): Promise<void> {
     throw new Error('Invalid check payload: missing jobId, event, or timestamp');
   }
 
-  // First, get or create a visit record for this job
+  // First, verify that the job exists
+  const { data: job, error: jobCheckError } = await supabase
+    .from('jobs')
+    .select('id')
+    .eq('id', payload.jobId)
+    .single();
+
+  if (jobCheckError || !job) {
+    console.warn(`Job ${payload.jobId} not found, skipping check action`);
+    // Don't throw error - just skip this check since the job doesn't exist
+    return;
+  }
+
+  // Get or create a visit record for this job
   let { data: visit, error: visitError } = await supabase
     .from('job_visits')
     .select('id')
@@ -246,7 +305,14 @@ async function processCheckAction(action: QueueItem): Promise<void> {
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    // If we get a foreign key error, skip this timesheet entry
+    if (error.code === '23503') {
+      console.warn(`Foreign key constraint error for job visit ${visit.id}, skipping timesheet entry`);
+      return;
+    }
+    throw error;
+  }
 
   // Update local cache if job detail is cached
   await updateJobCacheWithTimesheet(payload.jobId, data);

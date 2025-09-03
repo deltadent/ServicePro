@@ -1,4 +1,5 @@
 import AdminPanelLayout from "@/components/admin-panel/admin-panel-layout";
+import { AppShell } from "@/components/layout/AppShell";
 import { useAuth } from "@/hooks/useAuth";
 import {
   LayoutDashboard,
@@ -13,7 +14,11 @@ import {
   ClipboardList,
   BarChart3,
   Shield,
-  FileText
+  FileText,
+  Bell,
+  MapPin,
+  Clock,
+  CheckSquare
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 

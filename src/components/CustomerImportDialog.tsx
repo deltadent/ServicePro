@@ -1,5 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { Button } from "@/components/ui/button";
+import { ModernButton } from "@/components/ui/modern-button";
+import { MotionDiv, MotionContainer } from "@/components/ui/motion";
+import { ModernCard } from "@/components/ui/modern-card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -201,69 +203,101 @@ const CustomerImportDialog: React.FC<CustomerImportDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh]">
-        <DialogHeader>
-          <DialogTitle>Import Customers</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="max-w-4xl max-h-[80vh] bg-gradient-to-br from-white/95 to-slate-50/95 backdrop-blur-xl border-white/20 shadow-2xl">
+        <DialogHeader className="text-center pb-2">
+          <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent flex items-center justify-center gap-2">
+            <Upload className="w-6 h-6 text-blue-600" />
+            Import Customers
+          </DialogTitle>
+          <DialogDescription className="text-base text-gray-600 mt-2">
             Upload a CSV or Excel file to import customer data. Download the template first to ensure proper formatting.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Template Downloads */}
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => downloadTemplate('csv')}
-              className="flex items-center gap-2"
-            >
-              <Download className="w-4 h-4" />
-              Download CSV Template
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => downloadTemplate('excel')}
-              className="flex items-center gap-2"
-            >
-              <Download className="w-4 h-4" />
-              Download Excel Template
-            </Button>
-          </div>
-
-          {/* File Upload */}
-          <div className="space-y-2">
-            <Label htmlFor="file-upload">Select File</Label>
-            <div className="flex items-center gap-2">
-              <Input
-                ref={fileInputRef}
-                id="file-upload"
-                type="file"
-                accept=".csv,.xls,.xlsx"
-                onChange={handleFileSelect}
-                disabled={isImporting}
-                className="cursor-pointer"
-              />
-              {file && (
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  <FileText className="w-3 h-3" />
-                  {file.name}
-                </Badge>
-              )}
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Supported formats: CSV, Excel (.xls, .xlsx). Maximum file size: 10MB
-            </p>
-          </div>
-
-          {/* Import Progress */}
-          {isImporting && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Processing...</Label>
-                <span className="text-sm text-muted-foreground">{importProgress}%</span>
+        <MotionContainer className="space-y-6">
+          {/* Modern Template Downloads */}
+          <MotionDiv variant="fadeInUp" delay={0.1}>
+            <ModernCard variant="glass" className="p-4 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 border-blue-100">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <ModernButton
+                  variant="outline"
+                  onClick={() => downloadTemplate('csv')}
+                  className="flex-1 bg-white/80 hover:bg-white/90 border-white/40"
+                  leftIcon={<Download className="w-4 h-4" />}
+                >
+                  Download CSV Template
+                </ModernButton>
+                <ModernButton
+                  variant="outline"
+                  onClick={() => downloadTemplate('excel')}
+                  className="flex-1 bg-white/80 hover:bg-white/90 border-white/40"
+                  leftIcon={<Download className="w-4 h-4" />}
+                >
+                  Download Excel Template
+                </ModernButton>
               </div>
-              <Progress value={importProgress} />
-            </div>
+            </ModernCard>
+          </MotionDiv>
+
+          {/* Modern File Upload */}
+          <MotionDiv variant="fadeInUp" delay={0.2}>
+            <ModernCard variant="floating" className="p-6 bg-gradient-to-br from-white/90 to-gray-50/50">
+              <div className="space-y-4">
+                <Label htmlFor="file-upload" className="text-base font-semibold text-gray-800">
+                  Select File
+                </Label>
+                <div className="space-y-3">
+                  <div className="relative">
+                    <Input
+                      ref={fileInputRef}
+                      id="file-upload"
+                      type="file"
+                      accept=".csv,.xls,.xlsx"
+                      onChange={handleFileSelect}
+                      disabled={isImporting}
+                      className="cursor-pointer h-12 bg-white/80 border-gray-200 rounded-xl hover:bg-white/90 transition-all duration-200 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
+                  </div>
+                  {file && (
+                    <MotionDiv variant="slideInLeft" className="flex items-center justify-center">
+                      <Badge className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-green-200 px-3 py-2 rounded-xl flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        <span className="font-medium">{file.name}</span>
+                      </Badge>
+                    </MotionDiv>
+                  )}
+                </div>
+                <p className="text-sm text-gray-500 bg-blue-50 rounded-lg p-3 border border-blue-100">
+                  <span className="font-medium">Supported formats:</span> CSV, Excel (.xls, .xlsx) • <span className="font-medium">Maximum size:</span> 10MB
+                </p>
+              </div>
+            </ModernCard>
+          </MotionDiv>
+
+          {/* Modern Import Progress */}
+          {isImporting && (
+            <MotionDiv variant="fadeInUp" delay={0.3}>
+              <ModernCard variant="glass" className="p-6 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border-blue-200">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                      <Label className="text-base font-semibold text-gray-800">Processing your file...</Label>
+                    </div>
+                    <Badge className="bg-white/80 text-blue-700 font-bold px-3 py-1">
+                      {importProgress}%
+                    </Badge>
+                  </div>
+                  <div className="relative">
+                    <Progress value={importProgress} className="h-3 bg-white/60" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full transition-all duration-500 ease-out" 
+                         style={{ width: `${importProgress}%` }} />
+                  </div>
+                </div>
+              </ModernCard>
+            </MotionDiv>
           )}
 
           {/* Preview */}
@@ -329,13 +363,22 @@ const CustomerImportDialog: React.FC<CustomerImportDialogProps> = ({
                 </Table>
               </ScrollArea>
 
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setPreview(null)}>
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                <ModernButton 
+                  variant="outline" 
+                  onClick={() => setPreview(null)}
+                  className="bg-white/80 hover:bg-white/90"
+                >
                   Cancel
-                </Button>
-                <Button onClick={handleImport} disabled={preview.validRows === 0}>
+                </ModernButton>
+                <ModernButton 
+                  variant="gradient" 
+                  onClick={handleImport} 
+                  disabled={preview.validRows === 0}
+                  leftIcon={<Upload className="w-4 h-4" />}
+                >
                   Import {preview.validRows} Customers
-                </Button>
+                </ModernButton>
               </div>
             </div>
           )}
@@ -387,27 +430,38 @@ const CustomerImportDialog: React.FC<CustomerImportDialogProps> = ({
               )}
 
               <div className="flex justify-end">
-                <Button onClick={() => handleOpenChange(false)}>
+                <ModernButton 
+                  variant="gradient" 
+                  onClick={() => handleOpenChange(false)}
+                >
                   Close
-                </Button>
+                </ModernButton>
               </div>
             </div>
           )}
 
-          {/* Initial Upload Area */}
+          {/* Modern Initial Upload Area */}
           {!file && !preview && !importResults && (
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-              <Upload className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-              <p className="text-lg font-medium mb-2">Drop your CSV or Excel file here</p>
-              <p className="text-muted-foreground mb-4">
-                or click the "Select File" button above to browse
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Make sure your file contains columns for Name, Email, Phone, and other customer details
-              </p>
-            </div>
+            <MotionDiv variant="fadeInUp" delay={0.4}>
+              <ModernCard variant="glass" className="p-12 text-center bg-gradient-to-br from-gray-50/80 to-white/80 border-2 border-dashed border-gray-200 hover:border-blue-300 transition-all duration-300">
+                <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                  <Upload className="w-10 h-10 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-800 mb-3">
+                  Drop your CSV or Excel file here
+                </h3>
+                <p className="text-gray-600 mb-4 text-base">
+                  or click the "Select File" button above to browse
+                </p>
+                <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
+                  <p className="text-sm text-blue-700 font-medium">
+                    💡 Make sure your file contains columns for Name, Email, Phone, and other customer details
+                  </p>
+                </div>
+              </ModernCard>
+            </MotionDiv>
           )}
-        </div>
+        </MotionContainer>
       </DialogContent>
     </Dialog>
   );
