@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { ModernButton } from '@/components/ui/modern-button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -259,14 +259,14 @@ export function SystemPreferences() {
                 Enable push notifications for this device
               </p>
             </div>
-            <Button
+            <ModernButton
               type="button"
               variant="outline"
               size="sm"
               onClick={subscribeToPushNotifications}
             >
               Subscribe
-            </Button>
+            </ModernButton>
           </div>
         </CardContent>
       </Card>
@@ -284,23 +284,23 @@ export function SystemPreferences() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Button 
+            <ModernButton 
               variant="outline" 
               onClick={exportSystemData}
               className="flex items-center gap-2"
             >
               <Download className="h-4 w-4" />
               Export System Data
-            </Button>
+            </ModernButton>
 
-            <Button 
+            <ModernButton 
               variant="outline"
               onClick={refreshSystemData} 
               className="flex items-center gap-2"
             >
               <RefreshCw className="h-4 w-4" />
               Refresh System Data
-            </Button>
+            </ModernButton>
           </div>
 
           <Alert className="mt-4">

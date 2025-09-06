@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { ModernButton } from '@/components/ui/modern-button';
 import { Badge } from '@/components/ui/badge';
 import { Users, UserPlus, Shield, Settings } from 'lucide-react';
 
@@ -31,9 +31,9 @@ export function UserManagementSettings() {
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="default">Administrator</Badge>
-                <Button variant="ghost" size="sm">
+                <ModernButton variant="ghost" size="sm">
                   <Settings className="h-3 w-3" />
-                </Button>
+                </ModernButton>
               </div>
             </div>
 
@@ -42,10 +42,10 @@ export function UserManagementSettings() {
                 <UserPlus className="mx-auto h-12 w-12 mb-4" />
                 <p className="text-sm font-medium">User Management</p>
                 <p className="text-xs">User management features will be available in future updates</p>
-                <Button variant="outline" size="sm" className="mt-3" disabled>
+                <ModernButton variant="outline" size="sm" className="mt-3" disabled>
                   <UserPlus className="h-3 w-3 mr-1" />
                   Invite User
-                </Button>
+                </ModernButton>
               </div>
             </div>
           </div>

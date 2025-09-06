@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { ModernButton } from "@/components/ui/modern-button";
+import { StatsCard } from "@/components/ui/modern-card";
+import { MotionDiv, MotionContainer, AnimatedPage } from "@/components/ui/motion";
+import { PageHeader, ContentArea } from "@/components/layout/AppShell";
+import { SkeletonCard } from "@/components/ui/modern-skeleton";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -11,16 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Plus,
   Search,
-  Filter,
-  MoreVertical,
   Eye,
   Edit,
   Send,
@@ -30,9 +25,12 @@ import {
   Clock,
   DollarSign,
   Download,
-  Trash2
+  Trash2,
+  TrendingUp,
+  Users
 } from "lucide-react";
-import { DataTable } from "@/components/ui/DataTable";
+import { ModernDataTable, ActionsCell } from "@/components/ui/modern-data-table";
+import type { ColumnDef } from "@tanstack/react-table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -254,7 +252,7 @@ const QuoteManagement = () => {
   };
 
   // Table columns
-  const columns = [
+  const columns: ColumnDef<Quote>[] = [
     {
       header: 'Quote #',
       accessorKey: 'quote_number',
@@ -324,193 +322,132 @@ const QuoteManagement = () => {
       cell: ({ row }: { row: any }) => {
         const quote: Quote = row.original;
         
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <MoreVertical className="w-4 h-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handlePreviewQuote(quote)}>
-                <Eye className="w-4 h-4 mr-2" />
-                Preview
-              </DropdownMenuItem>
-              
-              {quote.status === 'draft' && (
-                <>
-                  <DropdownMenuItem onClick={() => {
-                    setSelectedQuote(quote);
-                    setShowCreateDialog(true);
-                  }}>
-                    <Edit className="w-4 h-4 mr-2" />
-                    Edit
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleShareQuote(quote)}>
-                    <Send className="w-4 h-4 mr-2" />
-                    Share Quote
-                  </DropdownMenuItem>
-                </>
-              )}
-              
-              {quote.status === 'approved' && (
-                <DropdownMenuItem onClick={() => handleConvertToJob(quote)}>
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Convert to Job
-                </DropdownMenuItem>
-              )}
+        const actions = [
+          {
+            label: 'Preview',
+            icon: Eye,
+            onClick: () => handlePreviewQuote(quote)
+          },
+          ...(quote.status === 'draft' ? [
+            {
+              label: 'Edit',
+              icon: Edit,
+              onClick: () => {
+                setSelectedQuote(quote);
+                setShowCreateDialog(true);
+              }
+            },
+            {
+              label: 'Share Quote',
+              icon: Send,
+              onClick: () => handleShareQuote(quote)
+            }
+          ] : []),
+          ...(quote.status === 'approved' ? [
+            {
+              label: 'Convert to Job',
+              icon: CheckCircle,
+              onClick: () => handleConvertToJob(quote)
+            }
+          ] : []),
+          {
+            label: 'Delete Quote',
+            icon: Trash2,
+            onClick: () => handleDeleteQuote(quote),
+            variant: 'destructive' as const
+          }
+        ];
 
-              <DropdownMenuItem
-                onClick={() => handleDeleteQuote(quote)}
-                className="text-red-600 focus:text-red-600"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete Quote
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
+        return <ActionsCell actions={actions} />;
       }
     }
   ];
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Quote Management</h1>
-          <p className="text-muted-foreground">
-            Create, manage, and track professional quotes
-          </p>
-        </div>
-        
-        <Button 
-          onClick={() => setShowCreateDialog(true)}
-          className="w-full sm:w-auto"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          New Quote
-        </Button>
-      </div>
-
-      {/* Statistics Cards */}
-      {statistics && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Quotes
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{statistics.total_quotes}</div>
-              <div className="text-sm text-muted-foreground">
-                ${statistics.total_quoted_amount.toFixed(0)} quoted
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Approval Rate
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{statistics.approval_rate.toFixed(1)}%</div>
-              <div className="text-sm text-muted-foreground">
-                {statistics.quotes_by_status.approved + statistics.quotes_by_status.converted} approved
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Average Value
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                ${statistics.average_quote_value.toFixed(0)}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                per quote
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Conversion Rate
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{statistics.conversion_rate.toFixed(1)}%</div>
-              <div className="text-sm text-muted-foreground">
-                {statistics.quotes_by_status.converted} converted
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                placeholder="Search quotes..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            
-            <Select 
-              value={statusFilter} 
-              onValueChange={(value) => setStatusFilter(value as QuoteStatus | 'all')}
-            >
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="sent">Sent</SelectItem>
-                <SelectItem value="viewed">Viewed</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="declined">Declined</SelectItem>
-                <SelectItem value="expired">Expired</SelectItem>
-                <SelectItem value="converted">Converted</SelectItem>
-              </SelectContent>
-            </Select>
+    <AnimatedPage>
+      <PageHeader 
+        title="Quote Management" 
+        description="Create, manage, and track professional quotes"
+        actions={
+          <ModernButton 
+            onClick={() => setShowCreateDialog(true)}
+            className="w-full sm:w-auto"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            New Quote
+          </ModernButton>
+        }
+      />
+      
+      <ContentArea>
+        {/* Statistics Cards */}
+        {loading && !statistics ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {[...Array(4)].map((_, i) => (
+              <SkeletonCard key={i} />
+            ))}
           </div>
-        </CardContent>
-      </Card>
+        ) : statistics ? (
+          <MotionContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <MotionDiv variant="scaleIn">
+              <StatsCard
+                title="Total Quotes"
+                value={statistics.total_quotes}
+                description={`$${statistics.total_quoted_amount.toFixed(0)} quoted`}
+                icon={<FileText className="w-5 h-5" />}
+              />
+            </MotionDiv>
+            
+            <MotionDiv variant="scaleIn" delay={0.1}>
+              <StatsCard
+                title="Approval Rate"
+                value={`${statistics.approval_rate.toFixed(1)}%`}
+                description={`${statistics.quotes_by_status.approved + statistics.quotes_by_status.converted} approved`}
+                trend={{
+                  value: statistics.approval_rate,
+                  isPositive: statistics.approval_rate >= 50
+                }}
+                icon={<TrendingUp className="w-5 h-5" />}
+              />
+            </MotionDiv>
+            
+            <MotionDiv variant="scaleIn" delay={0.2}>
+              <StatsCard
+                title="Average Value"
+                value={`$${statistics.average_quote_value.toFixed(0)}`}
+                description="per quote"
+                icon={<DollarSign className="w-5 h-5" />}
+              />
+            </MotionDiv>
+            
+            <MotionDiv variant="scaleIn" delay={0.3}>
+              <StatsCard
+                title="Conversion Rate"
+                value={`${statistics.conversion_rate.toFixed(1)}%`}
+                description={`${statistics.quotes_by_status.converted} converted`}
+                trend={{
+                  value: statistics.conversion_rate,
+                  isPositive: statistics.conversion_rate >= 30
+                }}
+                icon={<CheckCircle className="w-5 h-5" />}
+              />
+            </MotionDiv>
+          </MotionContainer>
+        ) : null}
 
-      {/* Quotes Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5" />
-            Quotes ({quotes.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <DataTable
+        {/* Data Table */}
+        <MotionDiv variant="fadeInUp">
+          <ModernDataTable
             columns={columns}
             data={quotes}
             loading={loading}
-            searchKey="quote_number"
-            searchPlaceholder="Search quotes..."
+            searchable={true}
+            searchPlaceholder="Search quotes by number, customer, or title..."
+            exportable={true}
+            filterColumns={['quote_number', 'customer.name', 'title']}
           />
-        </CardContent>
-      </Card>
+        </MotionDiv>
+      </ContentArea>
 
       {/* Create Quote Dialog */}
       {showCreateDialog && (
@@ -565,7 +502,7 @@ const QuoteManagement = () => {
           onJobCreated={handleJobCreated}
         />
       )}
-    </div>
+    </AnimatedPage>
   );
 };
 

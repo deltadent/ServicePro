@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ModernCard, ModernCardContent, ModernCardHeader, ModernCardTitle, ModernCardDescription } from '@/components/ui/modern-card';
+import { MotionDiv, AnimatedPage } from '@/components/ui/motion';
+import { PageHeader, ContentArea } from '@/components/layout/AppShell';
 import { 
   Building2, 
   Shield, 
@@ -67,56 +69,66 @@ export function SettingsLayout() {
   ];
 
   return (
-    <div className="container mx-auto py-6 px-4">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Settings</h1>
-        <p className="text-muted-foreground mt-2">
-          Manage your company profile, ZATCA compliance, and system preferences
-        </p>
-      </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <div className="overflow-x-auto">
-          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-7 gap-1 h-auto p-1">
-            {settingsTabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <TabsTrigger 
-                  key={tab.id} 
-                  value={tab.id}
-                  className="flex flex-col items-center gap-2 p-3 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                >
-                  <Icon className="h-4 w-4" />
-                  <span className="text-xs text-center leading-tight">{tab.label}</span>
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
-        </div>
-        {settingsTabs.map((tab) => (
-          <TabsContent key={tab.id} value={tab.id} className="space-y-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <tab.icon className="h-5 w-5" />
-                  <CardTitle>{tab.label}</CardTitle>
-                </div>
-                <CardDescription>{tab.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {tab.id === 'company-profile' && <CompanyProfileSettings />}
-                {tab.id === 'zatca' && <ZatcaSettings />}
-                {tab.id === 'templates' && <TemplateSettings />}
-                {tab.id === 'tax' && <TaxSettings />}
-                {tab.id === 'regional' && <RegionalSettings />}
-                {tab.id === 'users' && <UserManagementSettings />}
-                {tab.id === 'system' && <SystemPreferences />}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        ))}
-      </Tabs>
-    </div>
+    <AnimatedPage>
+      <PageHeader 
+        title="Settings" 
+        description="Manage your company profile, ZATCA compliance, and system preferences"
+        icon={<Settings className="w-6 h-6" />}
+      />
+      
+      <ContentArea>
+        <MotionDiv variant="fadeInUp">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+            <div className="overflow-x-auto">
+              <TabsList className="grid w-full grid-cols-1 sm:grid-cols-7 gap-2 h-auto p-2 bg-muted/30 backdrop-blur-sm border">
+                {settingsTabs.map((tab, index) => {
+                  const Icon = tab.icon;
+                  return (
+                    <TabsTrigger 
+                      key={tab.id} 
+                      value={tab.id}
+                      className="flex flex-col items-center gap-2 p-4 h-auto rounded-lg transition-all duration-200 data-[state=active]:bg-background data-[state=active]:shadow-soft data-[state=active]:scale-105"
+                    >
+                      <Icon className="h-5 w-5" />
+                      <span className="text-xs text-center leading-tight font-medium">{tab.label}</span>
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            </div>
+            
+            {settingsTabs.map((tab, index) => (
+              <TabsContent key={tab.id} value={tab.id} className="space-y-6">
+                <MotionDiv variant="scaleIn" delay={index * 0.1}>
+                  <ModernCard variant="floating" size="lg">
+                    <ModernCardHeader>
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-lg">
+                          <tab.icon className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <ModernCardTitle className="text-xl">{tab.label}</ModernCardTitle>
+                          <ModernCardDescription className="mt-1">{tab.description}</ModernCardDescription>
+                        </div>
+                      </div>
+                    </ModernCardHeader>
+                    <ModernCardContent>
+                      {tab.id === 'company-profile' && <CompanyProfileSettings />}
+                      {tab.id === 'zatca' && <ZatcaSettings />}
+                      {tab.id === 'templates' && <TemplateSettings />}
+                      {tab.id === 'tax' && <TaxSettings />}
+                      {tab.id === 'regional' && <RegionalSettings />}
+                      {tab.id === 'users' && <UserManagementSettings />}
+                      {tab.id === 'system' && <SystemPreferences />}
+                    </ModernCardContent>
+                  </ModernCard>
+                </MotionDiv>
+              </TabsContent>
+            ))}
+          </Tabs>
+        </MotionDiv>
+      </ContentArea>
+    </AnimatedPage>
   );
 }
 

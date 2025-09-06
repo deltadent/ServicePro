@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button';
+import { ModernModernButton } from '@/components/ui/modern-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -164,7 +164,7 @@ export function ZatcaSettings() {
                 {environmentStatus.label}
               </Badge>
             </div>
-            <Button
+            <ModernButton
               type="button"
               variant="outline"
               size="sm"
@@ -172,7 +172,7 @@ export function ZatcaSettings() {
               disabled={!watchedValues.is_zatca_enabled || testingConnection}
             >
               {testingConnection ? 'Testing...' : 'Test Connection'}
-            </Button>
+            </ModernButton>
           </div>
 
           {watchedValues.zatca_environment === 'production' && !settings?.zatca_certificate_data && (
@@ -476,11 +476,11 @@ export function ZatcaSettings() {
                 <p className="font-medium text-sm">ZATCA Portal</p>
                 <p className="text-xs text-muted-foreground">Official ZATCA registration portal</p>
               </div>
-              <Button variant="outline" size="sm" asChild>
+              <ModernButton variant="outline" size="sm" asChild>
                 <a href="https://zatca.gov.sa" target="_blank" rel="noopener noreferrer">
                   Visit Portal
                 </a>
-              </Button>
+              </ModernButton>
             </div>
 
             <div className="flex items-center justify-between">
@@ -488,12 +488,12 @@ export function ZatcaSettings() {
                 <p className="font-medium text-sm">E-Invoicing SDK</p>
                 <p className="text-xs text-muted-foreground">Technical implementation guide</p>
               </div>
-              <Button variant="outline" size="sm" asChild>
+              <ModernButton variant="outline" size="sm" asChild>
                 <a href="https://zatca.gov.sa/en/E-Invoicing/SystemsDevelopers/Pages/TechnicalRequirements.aspx" target="_blank" rel="noopener noreferrer">
                   <Download className="h-3 w-3 mr-1" />
                   Download SDK
                 </a>
-              </Button>
+              </ModernButton>
             </div>
 
             <div className="flex items-center justify-between">
@@ -501,25 +501,25 @@ export function ZatcaSettings() {
                 <p className="font-medium text-sm">Onboarding Guide</p>
                 <p className="text-xs text-muted-foreground">Step-by-step setup instructions</p>
               </div>
-              <Button variant="outline" size="sm" asChild>
+              <ModernButton variant="outline" size="sm" asChild>
                 <a href="https://zatca.gov.sa/en/E-Invoicing/Introduction/Guidelines/Documents/E-invoicing_Regulation.pdf" target="_blank" rel="noopener noreferrer">
                   View Guide
                 </a>
-              </Button>
+              </ModernButton>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Save Button */}
+      {/* Save ModernButton */}
       <div className="flex justify-end">
-        <Button 
+        <ModernButton 
           type="submit" 
           disabled={isSubmitting}
           className="min-w-32"
         >
           {isSubmitting ? 'Saving...' : 'Save Changes'}
-        </Button>
+        </ModernButton>
       </div>
     </form>
   );

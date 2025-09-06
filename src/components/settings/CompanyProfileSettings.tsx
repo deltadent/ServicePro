@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button';
+import { ModernModernButton } from '@/components/ui/modern-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -468,7 +468,7 @@ export function CompanyProfileSettings() {
                         e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNCAyNEg0MFY0MEgyNFYyNFoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+';
                       }}
                     />
-                    <Button
+                    <ModernButton
                       type="button"
                       variant="destructive"
                       size="sm"
@@ -476,7 +476,7 @@ export function CompanyProfileSettings() {
                       onClick={removeLogo}
                     >
                       <X className="h-3 w-3" />
-                    </Button>
+                    </ModernButton>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">
@@ -574,15 +574,15 @@ export function CompanyProfileSettings() {
         </CardContent>
       </Card>
 
-      {/* Save Button */}
+      {/* Save ModernButton */}
       <div className="flex justify-end">
-        <Button
+        <ModernButton
           type="submit"
           disabled={isSubmitting || uploading}
           className="min-w-32"
         >
           {isSubmitting || uploading ? 'Saving...' : 'Save Changes'}
-        </Button>
+        </ModernButton>
       </div>
     </form>
   );

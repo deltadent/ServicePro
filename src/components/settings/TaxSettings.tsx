@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button';
+import { ModernButton } from '@/components/ui/modern-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -163,7 +163,7 @@ export function TaxSettings() {
               onClick={() => setValue('default_vat_rate', 0.15)}
             >
               Saudi Standard (15%)
-            </Button>
+            </ModernButton>
             <Button
               type="button"
               variant="outline"
@@ -171,7 +171,7 @@ export function TaxSettings() {
               onClick={() => setValue('default_vat_rate', 0.05)}
             >
               Reduced Rate (5%)
-            </Button>
+            </ModernButton>
             <Button
               type="button"
               variant="outline"
@@ -179,7 +179,7 @@ export function TaxSettings() {
               onClick={() => setValue('default_vat_rate', 0)}
             >
               Zero Rate (0%)
-            </Button>
+            </ModernButton>
           </div>
         </CardContent>
       </Card>
@@ -280,13 +280,13 @@ export function TaxSettings() {
 
       {/* Save Button */}
       <div className="flex justify-end">
-        <Button 
+        <ModernButton 
           type="submit" 
           disabled={isSubmitting}
           className="min-w-32"
         >
           {isSubmitting ? 'Saving...' : 'Save Changes'}
-        </Button>
+        </ModernButton>
       </div>
     </form>
   );

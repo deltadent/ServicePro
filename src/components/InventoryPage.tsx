@@ -1,7 +1,11 @@
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { ModernButton } from "@/components/ui/modern-button";
+import { StatsCard } from "@/components/ui/modern-card";
+import { ModernDataTable, ActionsCell } from "@/components/ui/modern-data-table";
+import { MotionDiv, MotionContainer, AnimatedPage } from "@/components/ui/motion";
+import { PageHeader, ContentArea } from "@/components/layout/AppShell";
+import { SkeletonCard } from "@/components/ui/modern-skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { 
@@ -13,12 +17,17 @@ import {
   Zap,
   Droplets,
   Settings,
-  Edit
+  Edit,
+  DollarSign,
+  TrendingDown,
+  Grid
 } from "lucide-react";
+import type { ColumnDef } from "@tanstack/react-table";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from "@/hooks/use-toast";
 import InventoryItemDialog from './InventoryItemDialog';
+import { format } from "date-fns";
 
 const InventoryPage = () => {
   const { toast } = useToast();
@@ -81,159 +90,197 @@ const InventoryPage = () => {
   const totalValue = inventory.reduce((sum, item) => sum + (item.stock_quantity * item.unit_price), 0);
   const categories = new Set(inventory.map(item => item.category)).size;
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+  // Table columns
+  const columns: ColumnDef<any>[] = [
+    {
+      header: 'Item Details',
+      accessorKey: 'name',
+      cell: ({ row }: { row: any }) => (
+        <div>
+          <div className="font-medium">{row.original.name}</div>
+          <div className="text-sm text-muted-foreground">
+            {row.original.part_number}
+          </div>
+        </div>
+      )
+    },
+    {
+      header: 'Category',
+      accessorKey: 'category',
+      cell: ({ row }: { row: any }) => (
+        <div className="flex items-center gap-2">
+          {getCategoryIcon(row.original.category)}
+          <span>{row.original.category}</span>
+        </div>
+      )
+    },
+    {
+      header: 'Stock Level',
+      accessorKey: 'stock_quantity',
+      cell: ({ row }: { row: any }) => {
+        const item = row.original;
+        const stockStatus = getStockStatus(item.stock_quantity, item.min_stock_level);
+        return (
+          <div className="text-center">
+            <div className="font-medium">{item.stock_quantity}</div>
+            <Badge className={stockStatus.color} variant="outline">
+              {stockStatus.label}
+            </Badge>
+          </div>
+        );
+      }
+    },
+    {
+      header: 'Min Stock',
+      accessorKey: 'min_stock_level',
+      cell: ({ row }: { row: any }) => (
+        <div className="text-center font-medium">
+          {row.original.min_stock_level}
+        </div>
+      )
+    },
+    {
+      header: 'Unit Price',
+      accessorKey: 'unit_price',
+      cell: ({ row }: { row: any }) => (
+        <div className="text-right font-medium">
+          ${row.original.unit_price.toFixed(2)}
+        </div>
+      )
+    },
+    {
+      header: 'Total Value',
+      id: 'total_value',
+      cell: ({ row }: { row: any }) => {
+        const value = row.original.stock_quantity * row.original.unit_price;
+        return (
+          <div className="text-right font-medium">
+            ${value.toFixed(2)}
+          </div>
+        );
+      }
+    },
+    {
+      header: 'Supplier',
+      accessorKey: 'supplier',
+      cell: ({ row }: { row: any }) => (
+        <span className="text-sm">
+          {row.original.supplier || 'N/A'}
+        </span>
+      )
+    },
+    {
+      header: 'Actions',
+      id: 'actions',
+      cell: ({ row }: { row: any }) => {
+        const item = row.original;
+        
+        const actions = [
+          {
+            label: 'Edit Item',
+            icon: Edit,
+            onClick: () => {
+              // This will be handled by the InventoryItemDialog
+            },
+            disabled: !isAdmin
+          }
+        ];
+
+        if (!isAdmin) return null;
+
+        return (
+          <InventoryItemDialog
+            item={item}
+            onItemSaved={fetchInventory}
+            trigger={
+              <ModernButton variant="ghost" size="sm">
+                <Edit className="w-4 h-4" />
+              </ModernButton>
+            }
+          />
+        );
+      }
+    }
+  ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Inventory Management</h2>
-          <p className="text-gray-600">Track parts, tools, and supplies</p>
-        </div>
-        {isAdmin && (
-          <InventoryItemDialog onItemSaved={fetchInventory} />
-        )}
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-        <Input
-          placeholder="Search inventory items..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Items</p>
-                <p className="text-2xl font-bold">{inventory.length}</p>
-              </div>
-              <Package className="w-8 h-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Low Stock</p>
-                <p className="text-2xl font-bold text-red-600">{lowStockCount}</p>
-              </div>
-              <AlertTriangle className="w-8 h-8 text-red-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Value</p>
-                <p className="text-2xl font-bold text-green-600">${totalValue.toFixed(0)}</p>
-              </div>
-              <Wrench className="w-8 h-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Categories</p>
-                <p className="text-2xl font-bold">{categories}</p>
-              </div>
-              <Settings className="w-8 h-8 text-purple-500" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Inventory List */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredInventory.map((item) => {
-          const stockStatus = getStockStatus(item.stock_quantity, item.min_stock_level);
-          return (
-            <Card key={item.id} className="flex flex-col">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-base">{item.name}</CardTitle>
-                    <CardDescription>{item.part_number}</CardDescription>
-                  </div>
-                  <Badge className={stockStatus.color} variant="outline">
-                    {stockStatus.label}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-grow space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Category:</span>
-                  <span>{item.category}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Stock:</span>
-                  <span className="font-medium">{item.stock_quantity} / {item.min_stock_level}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Price:</span>
-                  <span className="font-medium">${item.unit_price.toFixed(2)}</span>
-                </div>
-                {item.supplier && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Supplier:</span>
-                    <span>{item.supplier}</span>
-                  </div>
-                )}
-              </CardContent>
-              {isAdmin && (
-                <div className="p-4 pt-0">
-                  <InventoryItemDialog
-                    item={item}
-                    onItemSaved={fetchInventory}
-                    trigger={
-                      <Button variant="outline" size="sm" className="w-full">
-                        <Edit className="w-4 h-4 mr-2" />
-                        Edit
-                      </Button>
-                    }
-                  />
-                </div>
-              )}
-            </Card>
-          );
-        })}
-      </div>
+    <AnimatedPage>
+      <PageHeader 
+        title="Inventory Management" 
+        description="Track parts, tools, and supplies"
+        actions={
+          isAdmin ? (
+            <InventoryItemDialog onItemSaved={fetchInventory} />
+          ) : undefined
+        }
+      />
       
-      {filteredInventory.length === 0 && (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <Package className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-            <h3 className="text-lg font-medium mb-2">No inventory items found</h3>
-            <p className="text-gray-500">
-              {searchTerm 
-                ? `No items match your search for "${searchTerm}"`
-                : 'Your inventory is empty.'
-              }
-            </p>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+      <ContentArea>
+        {/* Statistics Cards */}
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {[...Array(4)].map((_, i) => (
+              <SkeletonCard key={i} />
+            ))}
+          </div>
+        ) : (
+          <MotionContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <MotionDiv variant="scaleIn">
+              <StatsCard
+                title="Total Items"
+                value={inventory.length}
+                description="inventory items"
+                icon={<Package className="w-5 h-5" />}
+              />
+            </MotionDiv>
+            
+            <MotionDiv variant="scaleIn" delay={0.1}>
+              <StatsCard
+                title="Low Stock"
+                value={lowStockCount}
+                description="need restocking"
+                trend={{
+                  value: inventory.length > 0 ? Math.round((lowStockCount / inventory.length) * 100) : 0,
+                  isPositive: false
+                }}
+                icon={<AlertTriangle className="w-5 h-5" />}
+              />
+            </MotionDiv>
+            
+            <MotionDiv variant="scaleIn" delay={0.2}>
+              <StatsCard
+                title="Total Value"
+                value={`$${totalValue.toFixed(0)}`}
+                description="inventory worth"
+                icon={<DollarSign className="w-5 h-5" />}
+              />
+            </MotionDiv>
+            
+            <MotionDiv variant="scaleIn" delay={0.3}>
+              <StatsCard
+                title="Categories"
+                value={categories}
+                description="different types"
+                icon={<Grid className="w-5 h-5" />}
+              />
+            </MotionDiv>
+          </MotionContainer>
+        )}
+
+        {/* Data Table */}
+        <MotionDiv variant="fadeInUp">
+          <ModernDataTable
+            columns={columns}
+            data={filteredInventory}
+            loading={loading}
+            searchable={true}
+            searchPlaceholder="Search by name, part number, or category..."
+            exportable={true}
+            filterColumns={['name', 'part_number', 'category']}
+          />
+        </MotionDiv>
+      </ContentArea>
+    </AnimatedPage>
   );
 };
 

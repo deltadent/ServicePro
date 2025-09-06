@@ -279,10 +279,12 @@ const TechnicianManagementFull = () => {
     {
       id: "actions",
       cell: ({ row }) => (
-        <ActionsCell
-          onEdit={() => handleEdit(row.original)}
-          onDelete={() => handleDelete(row.original.id)}
-        />
+        <div className="flex justify-end">
+          <ActionsCell
+            onEdit={() => handleEdit(row.original)}
+            onDelete={() => handleDelete(row.original.id)}
+          />
+        </div>
       ),
     },
   ], []);

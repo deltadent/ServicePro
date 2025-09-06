@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button';
+import { ModernButton } from '@/components/ui/modern-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -282,7 +282,7 @@ export function TemplateSettings() {
               >
                 <Eye className="h-3 w-3 mr-1" />
                 Preview Quote Template
-              </Button>
+              </ModernButton>
             </div>
 
             <div>
@@ -314,7 +314,7 @@ export function TemplateSettings() {
               >
                 <Eye className="h-3 w-3 mr-1" />
                 Preview Invoice Template
-              </Button>
+              </ModernButton>
             </div>
           </div>
         </CardContent>
@@ -370,14 +370,14 @@ export function TemplateSettings() {
                 Manage custom quote and invoice templates
               </CardDescription>
             </div>
-            <Button 
+            <ModernButton 
               variant="outline" 
               size="sm"
               onClick={() => setCreateTemplateDialog(true)}
             >
               <Plus className="h-3 w-3 mr-1" />
               Create Template
-            </Button>
+            </ModernButton>
           </div>
         </CardHeader>
         <CardContent>
@@ -402,7 +402,7 @@ export function TemplateSettings() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button 
+                    <ModernButton 
                       variant="ghost" 
                       size="sm"
                       onClick={() => previewTemplate(
@@ -412,15 +412,15 @@ export function TemplateSettings() {
                       title="Preview template"
                     >
                       <Eye className="h-3 w-3" />
-                    </Button>
-                    <Button 
+                    </ModernButton>
+                    <ModernButton 
                       variant="ghost" 
                       size="sm"
                       onClick={() => openTemplateManagement(template)}
                       title="Manage template"
                     >
                       <Settings className="h-3 w-3" />
-                    </Button>
+                    </ModernButton>
                   </div>
                 </div>
               ))}
@@ -430,14 +430,14 @@ export function TemplateSettings() {
               <FileText className="mx-auto h-12 w-12 mb-4" />
               <p className="text-sm font-medium mb-2">No custom templates created yet</p>
               <p className="text-xs mb-4">Create custom templates to personalize your documents</p>
-              <Button 
+              <ModernButton 
                 variant="outline" 
                 size="sm"
                 onClick={() => setCreateTemplateDialog(true)}
               >
                 <Plus className="h-3 w-3 mr-1" />
                 Create Your First Template
-              </Button>
+              </ModernButton>
             </div>
           )}
         </CardContent>
@@ -445,13 +445,13 @@ export function TemplateSettings() {
 
       {/* Save Button */}
       <div className="flex justify-end">
-        <Button 
+        <ModernButton 
           type="submit" 
           disabled={isSubmitting}
           className="min-w-32"
         >
           {isSubmitting ? 'Saving...' : 'Save Changes'}
-        </Button>
+        </ModernButton>
       </div>
       
       {/* Template Preview Modal */}

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button';
+import { ModernButton } from '@/components/ui/modern-button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -356,13 +356,13 @@ export function RegionalSettings() {
 
       {/* Save Button */}
       <div className="flex justify-end">
-        <Button 
+        <ModernButton 
           type="submit" 
           disabled={isSubmitting}
           className="min-w-32"
         >
           {isSubmitting ? 'Saving...' : 'Save Changes'}
-        </Button>
+        </ModernButton>
       </div>
     </form>
   );
